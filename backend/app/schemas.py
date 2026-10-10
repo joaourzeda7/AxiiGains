@@ -3,13 +3,24 @@
 Os "...In" validam o que o frontend envia; os "...Out" definem o que devolvemos
 (repare que UserOut não tem password_hash — nunca devolvemos a senha).
 """
-from datetime import date
-from typing import Literal
+from datetime import date, timedelta
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator
 
 Goal = Literal["hipertrofia", "forca", "emagrecimento", "resistencia", "saude"]
 Level = Literal["iniciante", "intermediario", "avancado"]
+
+
+def _plausible_date(value: date) -> date:
+    # Barra datas absurdas (ano 1900, daqui a 10 anos) que bagunçariam gráficos e estatísticas.
+    # Aceita até "amanhã" por causa da diferença de fuso entre o celular e o servidor.
+    if value < date(2000, 1, 1) or value > date.today() + timedelta(days=1):
+        raise ValueError("Data inválida")
+    return value
+
+
+PastDate = Annotated[date, AfterValidator(_plausible_date)]
 
 
 class ORM(BaseModel):
@@ -22,8 +33,8 @@ class ORM(BaseModel):
 class UserCreate(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     email: str = Field(max_length=120)
-    # o bcrypt só aceita até 72 bytes de senha
-    password: str = Field(min_length=6, max_length=72)
+    password: str = Field(min_length=8, max_length=72)
+    invite_code: str | None = Field(default=None, max_length=100)
 
     @field_validator("email")
     @classmethod
@@ -36,7 +47,19 @@ class UserCreate(BaseModel):
     @field_validator("name")
     @classmethod
     def strip_name(cls, v: str) -> str:
-        return v.strip()
+        v = v.strip()
+        if not v:
+            raise ValueError("Informe seu nome")
+        return v
+
+    @field_validator("password")
+    @classmethod
+    def password_fits_bcrypt(cls, v: str) -> str:
+        # O bcrypt só aceita até 72 BYTES. Letras acentuadas e emojis ocupam 2 a 4 bytes,
+        # então 72 caracteres podem passar disso e o servidor quebraria (erro 500).
+        if len(v.encode()) > 72:
+            raise ValueError("Senha longa demais")
+        return v
 
 
 class ProfileUpdate(BaseModel):
@@ -81,7 +104,7 @@ class ExerciseOut(ORM, ExerciseIn):
 
 class PlanIn(BaseModel):
     name: str = Field(min_length=1, max_length=80)
-    notes: str | None = None
+    notes: str | None = Field(default=None, max_length=1000)
     exercises: list[ExerciseIn] = Field(default_factory=list, max_length=40)
 
 
@@ -108,8 +131,8 @@ class SetOut(ORM, SetIn):
 class SessionIn(BaseModel):
     plan_id: int | None = None
     plan_name: str = Field(min_length=1, max_length=80)
-    date: date
-    notes: str | None = None
+    date: PastDate
+    notes: str | None = Field(default=None, max_length=1000)
     sets: list[SetIn] = Field(min_length=1, max_length=300)
 
 
@@ -125,7 +148,7 @@ class SessionOut(ORM):
 # ---------- Medidas ----------
 
 class MeasurementIn(BaseModel):
-    date: date
+    date: PastDate
     weight: float | None = Field(default=None, gt=0, le=500)
     body_fat: float | None = Field(default=None, ge=0, le=80)
     chest: float | None = Field(default=None, gt=0, le=300)

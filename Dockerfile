@@ -14,11 +14,13 @@ FROM python:3.14-slim
 WORKDIR /app/backend
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
+    APP_ENV=production \
     DATA_DIR=/data
 COPY backend/requirements.txt ./
 RUN pip install -r requirements.txt
 COPY backend/ ./
 COPY --from=frontend /app/frontend/dist /app/frontend/dist
 
-# O Railway/Render informam a porta pela variável PORT
+# O Railway/Render informam a porta pela variável PORT.
+# As migrações do banco rodam sozinhas quando o app inicia (app/migrate.py).
 CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips='*'"]

@@ -226,7 +226,7 @@ function WeightCard({ weight, change }) {
         }
         value={weight == null ? "—" : formatKg(weight).replace(" kg", "")}
         unit={weight == null ? null : "kg"}
-        label={weight == null ? "registre seu peso" : change ? `${change > 0 ? "+" : ""}${formatKg(change)} no total` : "peso atual"}
+        label={weight == null ? "sem pesagem" : change ? `${change > 0 ? "+" : ""}${formatKg(change)} no total` : "peso atual"}
       />
     </Link>
   );

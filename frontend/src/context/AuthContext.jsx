@@ -40,8 +40,8 @@ export function AuthProvider({ children }) {
   );
 
   const register = useCallback(
-    async (name, email, password) => {
-      const { data } = await api.post("/auth/register", { name, email, password });
+    async (name, email, password, inviteCode) => {
+      const { data } = await api.post("/auth/register", { name, email, password, invite_code: inviteCode || null });
       handleToken(data);
     },
     [handleToken],

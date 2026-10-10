@@ -1,18 +1,28 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo, SubmitButton } from "@/components/common";
 import { useAuth } from "@/context/AuthContext";
-import { errorMessage } from "@/lib/api";
+import api, { errorMessage } from "@/lib/api";
 
 /** Login e cadastro na mesma tela: mode = "login" | "register" */
 export default function AuthPage({ mode }) {
   const isRegister = mode === "register";
   const { login, register } = useAuth();
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [form, setForm] = useState({ name: "", email: "", password: "", invite: "" });
   const [loading, setLoading] = useState(false);
+  const [inviteRequired, setInviteRequired] = useState(false);
+
+  // O servidor diz se o cadastro exige código de convite (variável REGISTRATION_CODE)
+  useEffect(() => {
+    if (!isRegister) return;
+    api
+      .get("/auth/register-info")
+      .then(({ data }) => setInviteRequired(data.invite_required))
+      .catch(() => {});
+  }, [isRegister]);
 
   const set = (field) => (e) => setForm({ ...form, [field]: e.target.value });
 
@@ -22,7 +32,7 @@ export default function AuthPage({ mode }) {
     // Não navegamos daqui: ao definir o usuário, o <PublicOnly> (App.jsx) redireciona
     try {
       if (isRegister) {
-        await register(form.name, form.email, form.password);
+        await register(form.name, form.email, form.password, form.invite);
         toast.success("Conta criada! Vamos configurar seu perfil.");
       } else {
         await login(form.email, form.password);
@@ -73,14 +83,30 @@ export default function AuthPage({ mode }) {
             id="password"
             type="password"
             autoComplete={isRegister ? "new-password" : "current-password"}
-            minLength={isRegister ? 6 : undefined}
+            minLength={isRegister ? 8 : undefined}
+            maxLength={72}
             value={form.password}
             onChange={set("password")}
             required
             className="h-12"
           />
-          {isRegister && <p className="text-xs text-muted-foreground">Mínimo de 6 caracteres.</p>}
+          {isRegister && <p className="text-xs text-muted-foreground">Mínimo de 8 caracteres.</p>}
         </div>
+        {isRegister && inviteRequired && (
+          <div className="grid gap-2">
+            <Label htmlFor="invite">Código de convite</Label>
+            <Input
+              id="invite"
+              autoCapitalize="none"
+              autoComplete="off"
+              value={form.invite}
+              onChange={set("invite")}
+              required
+              className="h-12"
+            />
+            <p className="text-xs text-muted-foreground">Peça o código para quem te convidou.</p>
+          </div>
+        )}
 
         <SubmitButton loading={loading} className="mt-2 h-12 text-base">
           {isRegister ? "Criar conta" : "Entrar"}

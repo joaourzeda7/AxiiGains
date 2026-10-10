@@ -4,6 +4,7 @@ from google.genai import errors, types
 
 from app.config import GEMINI_API_KEY, GEMINI_MODEL
 from app.models import User
+from app.ratelimit import ai_limiter
 from app.schemas import AISuggestIn, AISuggestOut
 from app.security import get_current_user
 
@@ -49,6 +50,8 @@ def _get_client() -> genai.Client:
 
 @router.post("/suggest", response_model=AISuggestOut)
 def suggest_plan(data: AISuggestIn, user: User = Depends(get_current_user)):
+    # Cada geração gasta a cota gratuita do Gemini: limitamos por usuário
+    ai_limiter.check(f"user:{user.id}")
     prompt = f"""Monte um plano de treino para este aluno:
 - Objetivo: {GOALS[data.goal]}
 - Nível: {LEVELS[data.level]}
