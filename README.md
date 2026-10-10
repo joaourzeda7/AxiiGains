@@ -32,12 +32,13 @@
 
 ## Tecnologias
 
-**Backend:** FastAPI · SQLAlchemy · SQLite · JWT · Google Gemini (`google-genai`)<br />
-**Frontend:** React · Vite · Tailwind CSS · shadcn/ui · Recharts · vite-plugin-pwa
+**Backend:** FastAPI · SQLAlchemy · Alembic · SQLite · JWT · Google Gemini (`google-genai`)<br />
+**Frontend:** React · Vite · Tailwind CSS · shadcn/ui · Recharts · vite-plugin-pwa<br />
+**Qualidade:** pytest · Vitest · GitHub Actions (testes, auditoria de dependências e build da imagem Docker)
 
 ## Rodando localmente
 
-Requer Python 3.12+ e Node.js 20+.
+Requer Python 3.14+ e Node.js 20+.
 
 ```bash
 # Backend
@@ -56,7 +57,14 @@ npm install
 npm run dev
 ```
 
-O app abre em http://localhost:5173 e a documentação da API em http://localhost:8000/docs.
+O app abre em http://localhost:5173 e a documentação da API em http://localhost:8000/docs. As tabelas do banco são criadas e atualizadas automaticamente (migrações do Alembic) quando o backend inicia.
+
+### Testes
+
+```bash
+cd backend && pip install -r requirements-dev.txt && pytest   # API, segurança e migrações
+cd frontend && npm test                                       # funções de data e número
+```
 
 ### Variáveis de ambiente (`backend/.env`)
 
@@ -66,24 +74,31 @@ O app abre em http://localhost:5173 e a documentação da API em http://localhos
 | `GEMINI_API_KEY` | Chave da API do Gemini ([obtenha aqui](https://aistudio.google.com/apikey)). Sem ela, o resto do app funciona normalmente |
 | `GEMINI_MODEL` | Modelo usado (padrão: `gemini-flash-latest`) |
 | `DATA_DIR` | Pasta do banco SQLite (padrão: `backend/`) |
+| `REGISTRATION_CODE` | Opcional. Se definido, o cadastro exige esse código de convite |
+| `APP_ENV` | `production` no deploy (já definido no Dockerfile): exige uma `SECRET_KEY` forte e desliga o `/docs` |
 
 ## Deploy
 
 O [`Dockerfile`](Dockerfile) gera o frontend e roda tudo em um único serviço, onde o FastAPI serve a API e o app. Exemplo no [Railway](https://railway.com):
 
-1. Crie um projeto a partir deste repositório. O Dockerfile é detectado automaticamente.
+1. Crie um projeto a partir deste repositório. O Dockerfile e o [`railway.json`](railway.json) (com o health check) são detectados automaticamente.
 2. Adicione um **Volume** com o *mount path* `/data`. Sem ele, o banco é apagado a cada deploy.
-3. Defina as variáveis `SECRET_KEY` e `GEMINI_API_KEY`.
+3. Defina as variáveis `SECRET_KEY`, `GEMINI_API_KEY` e, recomendado, `REGISTRATION_CODE`.
 4. Gere um domínio público e abra a URL no celular para instalar o app.
 
 ## Estrutura
 
 ```
-backend/app/
-  main.py          # app FastAPI; serve o frontend em produção
-  models.py        # tabelas (usuários, fichas, treinos, medidas)
-  schemas.py       # validação com Pydantic
-  routers/         # auth, plans, sessions, measurements, progress, ai
+backend/
+  app/
+    main.py        # app FastAPI, cabeçalhos de segurança; serve o frontend em produção
+    models.py      # tabelas (usuários, fichas, treinos, medidas)
+    schemas.py     # validação com Pydantic
+    security.py    # bcrypt + JWT
+    ratelimit.py   # limite de tentativas (login, cadastro, IA)
+    routers/       # auth, plans, sessions, measurements, progress, ai
+  migrations/      # migrações do Alembic
+  tests/           # testes com pytest
 frontend/src/
   pages/           # telas
   components/      # layout e componentes (ui/ = shadcn)
