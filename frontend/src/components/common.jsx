@@ -17,21 +17,24 @@ export function Logo({ className }) {
 export function PageHeader({ title, subtitle, back, action }) {
   const navigate = useNavigate();
   return (
-    <header className="flex items-end justify-between gap-3 pt-6 pb-5">
-      <div className="min-w-0">
-        {back && (
-          <button
-            type="button"
-            onClick={() => (window.history.length > 1 ? navigate(-1) : navigate(back))}
-            className="-ml-1 mb-1 flex items-center text-sm text-brand-soft"
-          >
-            <ChevronLeft className="size-5" /> Voltar
-          </button>
-        )}
-        <h1 className="truncate text-3xl font-bold tracking-tight">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
+    <header className="pt-6 pb-5">
+      <div className="flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          {back && (
+            <button
+              type="button"
+              onClick={() => (window.history.length > 1 ? navigate(-1) : navigate(back))}
+              className="-ml-1 mb-1 flex items-center text-sm text-brand-soft"
+            >
+              <ChevronLeft className="size-5" /> Voltar
+            </button>
+          )}
+          <h1 className="title-rune truncate text-3xl font-bold">{title}</h1>
+          {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
+        </div>
+        {action}
       </div>
-      {action}
+      <div className="rule-fade mt-4" />
     </header>
   );
 }
@@ -88,6 +91,43 @@ export function ChoiceChips({ options, value, onChange, className }) {
           {opt.label}
         </button>
       ))}
+    </div>
+  );
+}
+
+/** Título de seção (ex.: "Esta semana"), com um complemento opcional à direita. */
+export function SectionTitle({ children, aside }) {
+  return (
+    <div className="mt-2 flex items-baseline justify-between">
+      <h2 className="title-rune text-sm font-bold">{children}</h2>
+      {aside && <span className="text-xs text-brand-soft">{aside}</span>}
+    </div>
+  );
+}
+
+/** Anel de progresso circular. value vai de 0 a 1. */
+export function ProgressRing({ value, size = 48, stroke = 5, color = "var(--chart-1)", children }) {
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const clamped = Math.min(1, Math.max(0, value || 0));
+  return (
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="var(--accent)" strokeWidth={stroke} />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke={color}
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference * (1 - clamped)}
+          className="transition-[stroke-dashoffset] duration-700"
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center text-[11px] font-bold tabular-nums">{children}</div>
     </div>
   );
 }

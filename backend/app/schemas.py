@@ -151,9 +151,11 @@ class ExerciseProgressPoint(BaseModel):
 class DashboardOut(BaseModel):
     sessions_total: int
     sessions_this_week: int
+    week_dates: list[date]  # dias desta semana com treino (para a faixa de dias)
     days_per_week: int | None
     last_session: SessionOut | None
     latest_weight: float | None
+    weight_change: float | None  # diferença entre a última e a primeira pesagem
     next_plan: PlanOut | None
 
 

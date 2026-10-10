@@ -56,11 +56,11 @@ export default function Plans() {
               <Card className="py-0">
                 <CardContent className="flex items-center gap-3 px-0">
                   <Link to={`/fichas/${plan.id}`} className="flex min-w-0 flex-1 items-center gap-3 py-4 pl-4">
-                    <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-lg font-bold text-brand-soft">
+                    <div className="title-rune flex size-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 text-xl font-bold text-brand-soft">
                       {plan.name.match(/treino\s+(\w)/i)?.[1]?.toUpperCase() ?? plan.name[0].toUpperCase()}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold">{plan.name}</p>
+                      <p className="title-rune truncate font-semibold">{plan.name}</p>
                       <p className="truncate text-sm text-muted-foreground">
                         {plan.exercises.length} exercício{plan.exercises.length !== 1 && "s"}
                         {plan.exercises.length > 0 && ` · ${plan.exercises.map((e) => e.name).join(", ")}`}

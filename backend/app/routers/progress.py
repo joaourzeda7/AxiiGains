@@ -13,13 +13,25 @@ router = APIRouter(prefix="/progress", tags=["Progresso"])
 
 
 @router.get("/dashboard", response_model=DashboardOut)
-def dashboard(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def dashboard(
+    # O app envia a data do aparelho: o servidor pode estar em outro fuso (no deploy é UTC)
+    today: date | None = Query(default=None),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """Resumo para a tela inicial."""
-    week_start = date.today() - timedelta(days=date.today().weekday())  # segunda-feira
+    today = today or date.today()
+    week_start = today - timedelta(days=today.weekday())  # segunda-feira
 
     sessions_total = db.scalar(
         select(func.count()).select_from(WorkoutSession).where(WorkoutSession.user_id == user.id)
     )
+    week_dates = db.scalars(
+        select(WorkoutSession.date)
+        .where(WorkoutSession.user_id == user.id, WorkoutSession.date >= week_start)
+        .distinct()
+        .order_by(WorkoutSession.date)
+    ).all()
     sessions_this_week = db.scalar(
         select(func.count())
         .select_from(WorkoutSession)
@@ -31,11 +43,16 @@ def dashboard(user: User = Depends(get_current_user), db: Session = Depends(get_
         .order_by(WorkoutSession.date.desc(), WorkoutSession.id.desc())
         .limit(1)
     )
+
+    weights = select(BodyMeasurement.weight).where(
+        BodyMeasurement.user_id == user.id, BodyMeasurement.weight.is_not(None)
+    )
     latest_weight = db.scalar(
-        select(BodyMeasurement.weight)
-        .where(BodyMeasurement.user_id == user.id, BodyMeasurement.weight.is_not(None))
-        .order_by(BodyMeasurement.date.desc(), BodyMeasurement.id.desc())
-        .limit(1)
+        weights.order_by(BodyMeasurement.date.desc(), BodyMeasurement.id.desc()).limit(1)
+    )
+    first_weight = db.scalar(weights.order_by(BodyMeasurement.date, BodyMeasurement.id).limit(1))
+    weight_change = (
+        round(latest_weight - first_weight, 1) if latest_weight is not None else None
     )
 
     # Próxima ficha: a que vem depois da última treinada (A → B → C → A...)
@@ -53,11 +70,25 @@ def dashboard(user: User = Depends(get_current_user), db: Session = Depends(get_
     return DashboardOut(
         sessions_total=sessions_total,
         sessions_this_week=sessions_this_week,
+        week_dates=week_dates,
         days_per_week=user.days_per_week,
         last_session=last_session,
         latest_weight=latest_weight,
+        weight_change=weight_change,
         next_plan=next_plan,
     )
+
+
+@router.get("/records", response_model=dict[str, float])
+def records(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Maior carga já usada em cada exercício: {"Supino reto": 45.0, ...}"""
+    rows = db.execute(
+        select(SetLog.exercise_name, func.max(SetLog.weight))
+        .join(WorkoutSession)
+        .where(WorkoutSession.user_id == user.id)
+        .group_by(SetLog.exercise_name)
+    ).all()
+    return {name: weight for name, weight in rows}
 
 
 @router.get("/exercises", response_model=list[str])

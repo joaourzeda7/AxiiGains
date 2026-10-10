@@ -58,3 +58,22 @@ export function firstNumber(reps) {
 export function sessionVolume(session) {
   return session.sets.reduce((total, s) => total + s.reps * s.weight, 0);
 }
+
+/** Duração estimada de uma ficha: ~40s por série + o descanso. Arredonda para 5 min. */
+export function estimateMinutes(plan) {
+  const seconds = plan.exercises.reduce((total, ex) => total + ex.sets * (40 + (ex.rest_seconds ?? 60)), 0);
+  return Math.max(5, Math.round(seconds / 60 / 5) * 5);
+}
+
+/** As 7 datas (seg → dom) da semana de hoje, em "AAAA-MM-DD". */
+export function currentWeekDates() {
+  const today = parseDate(todayISO());
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 10);
+  });
+}

@@ -5,9 +5,10 @@ import { Check, Loader2, Plus, Timer, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { SubmitButton } from "@/components/common";
+import CastAnimation from "@/components/CastAnimation";
+import { ProgressRing, SubmitButton } from "@/components/common";
 import api, { errorMessage } from "@/lib/api";
-import { firstNumber, parseNumber, todayISO } from "@/lib/format";
+import { firstNumber, formatKg, parseNumber, todayISO } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const draftKey = (planId) => `axii_workout_${planId}`;
@@ -82,6 +83,8 @@ export default function Workout() {
   const [restUntil, setRestUntil] = useState(null); // horário em que o descanso acaba
   const [updatePlan, setUpdatePlan] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [records, setRecords] = useState({}); // maior carga já usada em cada exercício
+  const [summary, setSummary] = useState(null); // preenchido ao finalizar → mostra a animação
   const now = useNow();
 
   useEffect(() => {
@@ -95,6 +98,7 @@ export default function Workout() {
         toast.error(errorMessage(err));
         navigate("/fichas", { replace: true });
       });
+    api.get("/progress/records").then(({ data }) => setRecords(data)).catch(() => {});
   }, [planId, navigate]);
 
   // Salva o rascunho a cada mudança: se o app fechar, o treino continua de onde parou
@@ -176,8 +180,7 @@ export default function Workout() {
 
       if (updatePlan) {
         // Atualiza a carga da ficha com a maior carga usada hoje em cada exercício
-        const maxByExercise = {};
-        for (const s of sets) maxByExercise[s.exercise_name] = Math.max(maxByExercise[s.exercise_name] ?? 0, s.weight);
+        const maxByExercise = maxWeights(sets);
         await api.put(`/plans/${plan.id}`, {
           name: plan.name,
           notes: plan.notes,
@@ -193,13 +196,27 @@ export default function Workout() {
       }
 
       clearDraft(planId);
-      toast.success("Treino registrado! 💪");
-      navigate("/progresso", { replace: true });
+      // Recorde novo = carga maior que a melhor já registrada naquele exercício
+      const newRecords = Object.entries(maxWeights(sets))
+        .filter(([name, weight]) => records[name] != null && weight > records[name])
+        .map(([name, weight]) => ({ name, weight }));
+      setRestUntil(null);
+      setSummary({
+        planName: plan.name,
+        duration: (Date.now() - draft.startedAt) / 1000,
+        sets: sets.length,
+        volume: sets.reduce((total, s) => total + s.reps * s.weight, 0),
+        records: newRecords,
+      });
     } catch (err) {
       toast.error(errorMessage(err));
     } finally {
       setSaving(false);
     }
+  }
+
+  if (summary) {
+    return <CastAnimation summary={summary} onContinue={() => navigate("/progresso", { replace: true })} />;
   }
 
   if (!draft) {
@@ -212,21 +229,25 @@ export default function Workout() {
 
   return (
     <div className="mx-auto min-h-dvh max-w-lg pb-[calc(9rem+env(safe-area-inset-bottom))]">
-      {/* Cabeçalho fixo com tempo de treino e progresso */}
+      {/* Cabeçalho fixo: cronômetro grande + anel com as séries feitas */}
       <header className="sticky top-0 z-30 border-b border-border bg-background/85 px-4 pt-safe backdrop-blur-xl">
-        <div className="flex h-14 items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={handleCancel} aria-label="Sair do treino">
+        <div className="flex items-center gap-3 py-3">
+          <Button variant="ghost" size="icon" onClick={handleCancel} aria-label="Sair do treino" className="-ml-2">
             <X />
           </Button>
           <div className="min-w-0 flex-1">
-            <p className="truncate font-semibold">{plan.name}</p>
-            <p className="text-xs text-muted-foreground">
-              {formatClock((now - draft.startedAt) / 1000)} · {doneCount}/{totalCount} séries
-            </p>
+            <p className="truncate text-[11px] font-semibold tracking-[0.15em] text-muted-foreground uppercase">{plan.name}</p>
+            <p className="text-3xl leading-tight font-extrabold tabular-nums">{formatClock((now - draft.startedAt) / 1000)}</p>
           </div>
+          <ProgressRing value={doneCount / totalCount} size={52}>
+            {doneCount}/{totalCount}
+          </ProgressRing>
         </div>
-        <div className="h-0.5 bg-secondary">
-          <div className="h-full bg-primary transition-all" style={{ width: `${(doneCount / totalCount) * 100}%` }} />
+        <div className="-mx-4 h-1 bg-secondary">
+          <div
+            className="h-full bg-gradient-to-r from-[#9c85ff] to-[var(--chart-3)] transition-all"
+            style={{ width: `${(doneCount / totalCount) * 100}%` }}
+          />
         </div>
       </header>
 
@@ -235,18 +256,19 @@ export default function Workout() {
           <Card key={exIndex} className="gap-3 py-4">
             <CardContent className="px-4">
               <div className="mb-3">
-                <h2 className="font-semibold">{ex.name}</h2>
+                <h2 className="title-rune font-bold">{ex.name}</h2>
                 <p className="text-xs text-muted-foreground">
-                  Meta: {ex.sets.length} × {ex.targetReps}
+                  Meta {ex.sets.length} × {ex.targetReps}
                   {ex.rest > 0 && ` · descanso ${ex.rest}s`}
+                  {records[ex.name] > 0 && ` · recorde ${formatKg(records[ex.name])}`}
                   {ex.notes && ` · ${ex.notes}`}
                 </p>
               </div>
 
-              <div className="grid grid-cols-[2rem_1fr_1fr_3rem] items-center gap-2 text-[11px] text-muted-foreground">
+              <div className="grid grid-cols-[2rem_1fr_1fr_3rem] items-center gap-2 text-[10px] tracking-wider text-muted-foreground uppercase">
                 <span className="text-center">Série</span>
-                <span>Carga (kg)</span>
-                <span>Reps</span>
+                <span className="text-center">Kg</span>
+                <span className="text-center">Reps</span>
                 <span />
                 {ex.sets.map((s, setIndex) => (
                   <SetRow
@@ -281,11 +303,12 @@ export default function Workout() {
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/90 backdrop-blur-xl pb-safe">
         <div className="mx-auto flex max-w-lg flex-col gap-2 px-4 py-3">
           {restUntil && (
-            <div className="flex items-center gap-3 rounded-xl bg-primary/15 px-4 py-2">
+            <div className="flex items-center gap-3 rounded-2xl border border-primary/35 bg-gradient-to-r from-primary/25 to-[color-mix(in_oklab,var(--chart-3)_15%,transparent)] px-4 py-2">
               <Timer className="size-5 text-brand-soft" />
-              <span className="flex-1 text-sm">
-                Descanso <span className="font-mono text-lg font-semibold tabular-nums">{formatClock(restLeft)}</span>
-              </span>
+              <div className="flex-1 leading-tight">
+                <p className="text-[10px] tracking-wider text-muted-foreground uppercase">Descanso</p>
+                <p className="text-xl font-bold tabular-nums">{formatClock(restLeft)}</p>
+              </div>
               <Button size="sm" variant="ghost" onClick={() => setRestUntil((t) => t + 15000)}>
                 +15s
               </Button>
@@ -294,7 +317,7 @@ export default function Workout() {
               </Button>
             </div>
           )}
-          <SubmitButton type="button" loading={saving} onClick={handleFinish} className="h-12 text-base">
+          <SubmitButton type="button" loading={saving} onClick={handleFinish} className="h-12 text-sm font-bold tracking-wider uppercase">
             <Check /> Finalizar treino
           </SubmitButton>
         </div>
@@ -343,4 +366,11 @@ function SetRow({ index, set, onChange, onToggle }) {
       </button>
     </>
   );
+}
+
+/** { "Supino": 45, ... } com a maior carga de cada exercício na lista de séries */
+function maxWeights(sets) {
+  const result = {};
+  for (const s of sets) result[s.exercise_name] = Math.max(result[s.exercise_name] ?? 0, s.weight);
+  return result;
 }

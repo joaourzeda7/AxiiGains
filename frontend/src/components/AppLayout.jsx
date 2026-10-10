@@ -14,6 +14,8 @@ const TABS = [
 export default function AppLayout() {
   return (
     <div className="mx-auto min-h-dvh max-w-lg">
+      {/* brilho roxo no topo de todas as telas */}
+      <div className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-72 bg-[radial-gradient(ellipse_at_top,rgba(123,92,255,0.22),transparent_70%)]" />
       <main className="px-4 pt-safe pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
         <Outlet />
       </main>

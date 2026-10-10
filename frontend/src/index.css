@@ -2,9 +2,12 @@
 @import "tw-animate-css";
 @import "./styles/shadcn.css";
 @import "@fontsource-variable/geist";
+/* Cinzel: fonte de inspiração medieval usada nos títulos (só o alfabeto latino, que cobre os acentos) */
+@import "@fontsource/cinzel/latin-600.css";
+@import "@fontsource/cinzel/latin-700.css";
 
 @theme inline {
-  --font-heading: var(--font-sans);
+  --font-heading: "Cinzel", Georgia, serif;
   --font-sans: "Geist Variable", -apple-system, BlinkMacSystemFont, sans-serif;
   --color-brand: var(--brand);
   --color-brand-soft: var(--brand-soft);
@@ -105,6 +108,122 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
   .glow-brand {
-    box-shadow: 0 0 0 1px rgb(156 133 255 / 25%), 0 8px 30px -8px rgb(123 92 255 / 55%);
+    box-shadow: 0 0 0 1px rgb(156 133 255 / 25%), 0 14px 40px -14px rgb(123 92 255 / 90%);
+  }
+  /* Títulos em Cinzel com um leve espaçamento entre letras */
+  .title-rune {
+    font-family: var(--font-heading);
+    letter-spacing: 0.03em;
+  }
+  /* Card de destaque: gradiente roxo com anéis decorativos (lembram anilhas) */
+  .hero-card {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #8f6bff 0%, #5a2fe6 55%, #2a1466 100%);
+  }
+  .hero-card::before,
+  .hero-card::after {
+    content: "";
+    position: absolute;
+    border-radius: 9999px;
+    pointer-events: none;
+  }
+  .hero-card::after {
+    right: -40px;
+    top: -40px;
+    width: 150px;
+    height: 150px;
+    border: 20px solid rgb(255 255 255 / 10%);
+  }
+  .hero-card::before {
+    right: 40px;
+    bottom: -60px;
+    width: 100px;
+    height: 100px;
+    border: 12px solid rgb(255 255 255 / 7%);
+  }
+  /* Linha que some para a direita, usada como divisória */
+  .rule-fade {
+    height: 1px;
+    background: linear-gradient(90deg, rgb(185 164 255 / 55%), transparent);
+  }
+}
+
+/* ---------- Animação de conclusão do treino (sinal sendo conjurado) ---------- */
+@keyframes cast-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes cast-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes cast-burst {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.8);
+  }
+}
+@keyframes cast-pulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 10px rgb(156 133 255 / 60%));
+  }
+  50% {
+    filter: drop-shadow(0 0 28px rgb(185 164 255 / 95%));
+  }
+}
+@keyframes cast-spark {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--angle)) translateY(0) scale(1);
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--angle)) translateY(calc(var(--distance) * -1)) scale(0.2);
+  }
+}
+@keyframes cast-appear {
+  to {
+    opacity: 1;
+  }
+}
+/* pupila redonda que se contrai até virar fenda (olho de bruxo) */
+@keyframes cast-slit {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0.22);
+  }
+}
+@keyframes cast-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Quem ativou "reduzir movimento" no celular não vê animações */
+@media (prefers-reduced-motion: reduce) {
+  .cast-anim * {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
   }
 }

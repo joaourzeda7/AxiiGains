@@ -40,7 +40,7 @@ export default function AuthPage({ mode }) {
 
       <div className="mb-10 flex flex-col items-center text-center">
         <Logo className="mb-5 size-20" />
-        <h1 className="text-3xl font-bold tracking-tight">AxiiGains</h1>
+        <h1 className="title-rune text-3xl font-bold">AxiiGains</h1>
         <p className="mt-1 text-muted-foreground">
           {isRegister ? "Crie sua conta e comece a evoluir" : "Seu treino, sob controle"}
         </p>
