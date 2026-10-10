@@ -10,17 +10,22 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/login.png" width="180" alt="Tela de login" />
-  <img src="docs/screenshots/inicio.png" width="180" alt="Tela inicial" />
-  <img src="docs/screenshots/treino.png" width="180" alt="Treino em andamento" />
-  <img src="docs/screenshots/progresso.png" width="180" alt="Gráfico de progresso" />
-  <img src="docs/screenshots/ia.png" width="180" alt="Geração de plano com IA" />
+  <img src="docs/screenshots/inicio.png" width="200" alt="Tela inicial com o próximo treino e a semana" />
+  <img src="docs/screenshots/treino.png" width="200" alt="Treino em andamento com cronômetro de descanso" />
+  <img src="docs/screenshots/conclusao.png" width="200" alt="Animação de treino concluído com novo recorde" />
+</p>
+<p align="center">
+  <img src="docs/screenshots/progresso.png" width="200" alt="Gráfico de evolução de carga" />
+  <img src="docs/screenshots/ia.png" width="200" alt="Geração de plano com IA" />
+  <img src="docs/screenshots/login.png" width="200" alt="Tela de login" />
 </p>
 
 ## Funcionalidades
 
 - **Fichas de treino:** exercícios com séries, repetições, carga e descanso.
-- **Modo treino:** registro série a série, com cronômetro de descanso. O progresso é salvo automaticamente se o app fechar.
+- **Modo treino:** registro série a série, cronômetro de descanso e o recorde de cada exercício à vista. O progresso é salvo automaticamente se o app fechar.
+- **Sinal conjurado:** ao concluir um treino, uma animação do olho de bruxo apresenta o resumo (duração, séries, volume) e os novos recordes.
+- **Início:** próximo treino da rotação (A → B → C), meta semanal com os dias treinados e a variação de peso.
 - **Progresso:** histórico de treinos, evolução de carga por exercício (com 1RM estimada) e medidas corporais.
 - **Axii IA:** o Gemini monta um plano personalizado a partir do objetivo, do nível e dos dias disponíveis, e o plano vira fichas com um toque.
 - **App instalável:** ícone, splash screens para iOS e funcionamento em tela cheia.
@@ -90,4 +95,4 @@ Mais detalhes técnicos, erros comuns e decisões de arquitetura estão em [docs
 
 ---
 
-<sub>O nome e o ícone fazem uma homenagem ao sinal Axii da série <i>The Witcher</i>. O projeto não tem afiliação com a CD PROJEKT RED nem com Andrzej Sapkowski.</sub>
+<sub>O nome e o visual são uma homenagem à série <i>The Witcher</i>: o sinal Axii e os olhos de gato dos bruxos. O projeto não tem afiliação com a CD PROJEKT RED nem com Andrzej Sapkowski.</sub>
