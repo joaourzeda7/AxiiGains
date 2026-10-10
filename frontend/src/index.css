@@ -1,0 +1,110 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "./styles/shadcn.css";
+@import "@fontsource-variable/geist";
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: "Geist Variable", -apple-system, BlinkMacSystemFont, sans-serif;
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* Tema único: escuro, roxo e branco (o mesmo do ícone) */
+:root {
+  color-scheme: dark;
+  --background: #0b0616;
+  --foreground: #f5f2ff;
+  --card: #151024;
+  --card-foreground: #f5f2ff;
+  --popover: #1b1430;
+  --popover-foreground: #f5f2ff;
+  --primary: #7b5cff;
+  --primary-foreground: #ffffff;
+  --secondary: #231a3d;
+  --secondary-foreground: #f5f2ff;
+  --muted: #1e1733;
+  --muted-foreground: #a69cc4;
+  --accent: #2a2047;
+  --accent-foreground: #f5f2ff;
+  --destructive: #ff5c7a;
+  --border: rgb(255 255 255 / 9%);
+  --input: rgb(255 255 255 / 13%);
+  --ring: #9c85ff;
+  --brand: #7b5cff;
+  --brand-soft: #b9a4ff;
+  --chart-1: #9c85ff;
+  --chart-2: #f5f2ff;
+  --chart-3: #5ad1c4;
+  --chart-4: #ffb86b;
+  --chart-5: #ff7ab8;
+  --radius: 0.875rem;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    -webkit-tap-highlight-color: transparent;
+  }
+  html {
+    @apply font-sans;
+    /* impede o iOS de aumentar o texto sozinho ao girar a tela */
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    overscroll-behavior-y: none;
+  }
+  /* O Safari dá zoom automático em campos com fonte menor que 16px.
+     Erro clássico de PWA no iPhone: forçamos 16px em telas pequenas. */
+  @media (max-width: 640px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* Áreas seguras do iPhone (notch e barra inferior) */
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .glow-brand {
+    box-shadow: 0 0 0 1px rgb(156 133 255 / 25%), 0 8px 30px -8px rgb(123 92 255 / 55%);
+  }
+}

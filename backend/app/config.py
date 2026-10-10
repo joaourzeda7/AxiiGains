@@ -1,0 +1,32 @@
+"""Configurações lidas das variáveis de ambiente (arquivo .env em desenvolvimento)."""
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BACKEND_DIR / ".env")
+
+SECRET_KEY = os.getenv("SECRET_KEY", "")
+if not SECRET_KEY or SECRET_KEY.startswith("troque"):
+    # Em desenvolvimento seguimos com uma chave fixa, mas avisamos.
+    # Em produção SEMPRE defina SECRET_KEY: quem souber a chave consegue forjar logins.
+    print("AVISO: SECRET_KEY nao definida no .env - usando chave de desenvolvimento.")
+    SECRET_KEY = "chave-de-desenvolvimento-nao-use-em-producao"
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+if GEMINI_API_KEY.startswith("sua_chave"):
+    GEMINI_API_KEY = ""
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
+
+# Caminho relativo é resolvido a partir da pasta backend/, não de onde o comando foi rodado
+DATA_DIR = Path(os.getenv("DATA_DIR", "."))
+if not DATA_DIR.is_absolute():
+    DATA_DIR = BACKEND_DIR / DATA_DIR
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+DATABASE_URL = f"sqlite:///{DATA_DIR / 'axiigains.db'}"
+
+TOKEN_EXPIRE_DAYS = 30
+
+# Build do frontend (frontend/dist). Se existir, o backend também serve o app.
+FRONTEND_DIST = BACKEND_DIR.parent / "frontend" / "dist"
