@@ -37,10 +37,30 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Token expirado/inválido → desloga em qualquer tela
+const MAX_RETRIES = 4;
+
+/** O servidor está "acordando"? (no deploy, ele dorme quando ninguém usa)
+ *  Nesses casos a requisição nem chegou ao app, então é seguro tentar de novo. */
+export function isWakingUp(error) {
+  if (error.code === "ECONNABORTED") return false; // estourou o tempo: pode ter chegado ao servidor
+  if (!error.response) return true; // sem resposta: falha de rede
+  const { status, data } = error.response;
+  // 502/503/504 vindos do proxy do Railway, e não do nosso app (os nossos sempre têm "detail")
+  return [502, 503, 504].includes(status) && !data?.detail;
+}
+
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const config = error.config;
+    if (config && isWakingUp(error) && (config.retries ?? 0) < MAX_RETRIES) {
+      config.retries = (config.retries ?? 0) + 1;
+      await wait(1000 * 2 ** (config.retries - 1)); // 1s, 2s, 4s, 8s
+      return api(config);
+    }
+    // Token expirado/inválido → desloga em qualquer tela
     if (error.response?.status === 401 && tokenStore.get()) {
       tokenStore.clear();
       window.dispatchEvent(new Event("axii:logout"));

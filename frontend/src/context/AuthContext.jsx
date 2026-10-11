@@ -7,15 +7,25 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   // "loading" evita piscar a tela de login enquanto conferimos o token salvo
   const [loading, setLoading] = useState(() => Boolean(tokenStore.get()));
+  // true quando o servidor não respondeu (diferente de "token inválido")
+  const [unreachable, setUnreachable] = useState(false);
 
-  useEffect(() => {
+  const loadUser = useCallback(() => {
     if (!tokenStore.get()) return;
+    setLoading(true);
+    setUnreachable(false);
     api
       .get("/auth/me")
       .then(({ data }) => setUser(data))
-      .catch(() => tokenStore.clear())
+      .catch((err) => {
+        // Só um 401 significa login inválido (o interceptor já apaga o token).
+        // Qualquer outra falha é o servidor fora do ar: mantemos o login salvo.
+        if (err.response?.status !== 401) setUnreachable(true);
+      })
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(loadUser, [loadUser]);
 
   // O interceptor do axios dispara esse evento quando recebe 401
   useEffect(() => {
@@ -59,7 +69,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, loading, unreachable, retry: loadUser, login, register, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

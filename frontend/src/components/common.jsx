@@ -1,6 +1,8 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, Loader2 } from "lucide-react";
+import { ChevronLeft, CloudOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
 
 export function Logo({ className }) {
@@ -55,10 +57,38 @@ export function EmptyState({ icon: Icon, title, description, children }) {
 }
 
 export function FullScreenLoader() {
+  // Se demorar, provavelmente o servidor estava dormindo: explicamos em vez de deixar a pessoa no escuro
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setSlow(true), 2500);
+    return () => clearTimeout(id);
+  }, []);
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-6">
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-6 px-8 text-center">
       <Logo className="size-20 animate-pulse" />
       <Loader2 className="size-5 animate-spin text-muted-foreground" />
+      <p className={cn("text-sm text-muted-foreground transition-opacity duration-500", slow ? "opacity-100" : "opacity-0")}>
+        Despertando o servidor…
+      </p>
+    </div>
+  );
+}
+
+/** Mostrado quando o servidor não respondeu nem depois de várias tentativas. */
+export function ServerUnavailable() {
+  const { retry } = useAuth();
+  return (
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-4 px-8 text-center">
+      <CloudOff className="size-10 text-brand-soft" />
+      <div>
+        <h1 className="title-rune text-xl font-bold">Servidor indisponível</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Verifique sua internet. Se o app ficou um tempo sem uso, o servidor pode estar acordando.
+        </p>
+      </div>
+      <Button onClick={retry} className="h-11 px-6">
+        Tentar de novo
+      </Button>
     </div>
   );
 }

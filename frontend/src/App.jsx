@@ -1,7 +1,7 @@
 import { lazy, Suspense } from "react";
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
-import { FullScreenLoader } from "@/components/common";
+import { FullScreenLoader, ServerUnavailable } from "@/components/common";
 import { useAuth } from "@/context/AuthContext";
 import AICoach from "@/pages/AICoach";
 import AuthPage from "@/pages/AuthPage";
@@ -16,8 +16,9 @@ const Progress = lazy(() => import("@/pages/Progress"));
 
 /** Só deixa passar quem está logado. */
 function RequireAuth() {
-  const { user, loading } = useAuth();
+  const { user, loading, unreachable } = useAuth();
   if (loading) return <FullScreenLoader />;
+  if (unreachable) return <ServerUnavailable />;
   return user ? <Outlet /> : <Navigate to="/login" replace />;
 }
 
