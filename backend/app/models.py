@@ -9,6 +9,7 @@ from datetime import date, datetime, timezone
 from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app import config
 from app.database import Base
 
 
@@ -34,6 +35,11 @@ class User(Base):
     plans: Mapped[list["WorkoutPlan"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
+
+    @property
+    def is_admin(self) -> bool:
+        # Não é uma coluna: vem da variável ADMIN_EMAILS, então dá para mudar sem migração
+        return self.email in config.ADMIN_EMAILS
 
 
 class WorkoutPlan(Base):

@@ -3,6 +3,7 @@ import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
 import { FullScreenLoader, ServerUnavailable } from "@/components/common";
 import { useAuth } from "@/context/AuthContext";
+import Admin from "@/pages/Admin";
 import AICoach from "@/pages/AICoach";
 import AuthPage from "@/pages/AuthPage";
 import Home from "@/pages/Home";
@@ -60,6 +61,7 @@ export default function App() {
             }
           />
           <Route path="/perfil" element={<Profile />} />
+          <Route path="/admin" element={<Admin />} />
         </Route>
       </Route>
 

@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { LogOut, Share, SquarePlus } from "lucide-react";
+import { ChevronRight, LogOut, Share, ShieldCheck, SquarePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -112,6 +112,14 @@ export default function Profile() {
             )}
           </CardContent>
         </Card>
+      )}
+
+      {user.is_admin && !isOnboarding && (
+        <Link to="/admin" className="mt-6 flex items-center gap-3 rounded-2xl border border-primary/40 bg-primary/10 p-4">
+          <ShieldCheck className="size-5 text-brand-soft" />
+          <span className="flex-1 font-medium">Painel do admin</span>
+          <ChevronRight className="size-5 text-muted-foreground" />
+        </Link>
       )}
 
       {!isOnboarding && (

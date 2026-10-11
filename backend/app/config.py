@@ -31,6 +31,9 @@ GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
 # Recomendado no deploy, para estranhos não usarem o app (e a sua cota do Gemini).
 REGISTRATION_CODE = os.getenv("REGISTRATION_CODE", "").strip()
 
+# E-mails com acesso ao painel de admin, separados por vírgula: "eu@gmail.com,outro@gmail.com"
+ADMIN_EMAILS = {e.strip().lower() for e in os.getenv("ADMIN_EMAILS", "").split(",") if e.strip()}
+
 # Caminho relativo é resolvido a partir da pasta backend/, não de onde o comando foi rodado
 DATA_DIR = Path(os.getenv("DATA_DIR", "."))
 if not DATA_DIR.is_absolute():

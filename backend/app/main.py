@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.config import FRONTEND_DIST, IS_PRODUCTION
 from app.database import get_db
 from app.migrate import run_migrations
-from app.routers import ai, auth, measurements, plans, progress, sessions
+from app.routers import admin, ai, auth, measurements, plans, progress, sessions
 
 
 @asynccontextmanager
@@ -91,7 +91,7 @@ def health(db: Session = Depends(get_db)):
     return {"message": "AxiiGains API rodando!"}
 
 
-for module in (auth, plans, sessions, measurements, progress, ai):
+for module in (auth, plans, sessions, measurements, progress, ai, admin):
     api.include_router(module.router)
 app.include_router(api)
 

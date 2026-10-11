@@ -51,6 +51,7 @@ O GitHub Actions (`.github/workflows/ci.yml`) roda tudo isso a cada push, audita
 | Login com tempo de resposta igual para e-mail existente ou não | `routers/auth.py` |
 | Limite de tentativas: login (10 a cada 5 min por IP), cadastro (5/h por IP), IA (8/h por usuário) | `ratelimit.py` |
 | Código de convite opcional para cadastro (`REGISTRATION_CODE`) | `routers/auth.py` |
+| Painel de admin só para quem está em `ADMIN_EMAILS` (os outros recebem 403); senhas nunca aparecem | `routers/admin.py` |
 | Toda consulta filtra pelo dono dos dados (evita IDOR) | `routers/*.py` |
 | JWT com algoritmo fixo e validade obrigatória | `security.py` |
 | Em produção: não sobe sem `SECRET_KEY` forte; `/docs` desligado | `config.py`, `main.py` |

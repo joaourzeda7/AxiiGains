@@ -3,7 +3,7 @@
 Os "...In" validam o que o frontend envia; os "...Out" definem o que devolvemos
 (repare que UserOut não tem password_hash — nunca devolvemos a senha).
 """
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Annotated, Literal
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator
@@ -78,6 +78,7 @@ class UserOut(ORM):
     level: str | None
     days_per_week: int | None
     equipment: str | None
+    is_admin: bool = False
 
 
 class Token(BaseModel):
@@ -180,6 +181,25 @@ class DashboardOut(BaseModel):
     latest_weight: float | None
     weight_change: float | None  # diferença entre a última e a primeira pesagem
     next_plan: PlanOut | None
+
+
+# ---------- Admin ----------
+
+class AdminUser(BaseModel):
+    id: int
+    name: str
+    email: str
+    created_at: datetime
+    plans_count: int
+    sessions_count: int
+    last_session: date | None
+
+
+class AdminOverview(BaseModel):
+    total_users: int
+    active_last_7_days: int  # quem registrou treino nos últimos 7 dias
+    total_sessions: int
+    users: list[AdminUser]
 
 
 # ---------- IA ----------

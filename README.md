@@ -75,6 +75,7 @@ cd frontend && npm test                                       # funções de dat
 | `GEMINI_MODEL` | Modelo usado (padrão: `gemini-flash-latest`) |
 | `DATA_DIR` | Pasta do banco SQLite (padrão: `backend/`) |
 | `REGISTRATION_CODE` | Opcional. Se definido, o cadastro exige esse código de convite |
+| `ADMIN_EMAILS` | Opcional. E-mails (separados por vírgula) que veem o **Painel do admin** no Perfil: usuários cadastrados e quem está treinando |
 | `APP_ENV` | `production` no deploy (já definido no Dockerfile): exige uma `SECRET_KEY` forte e desliga o `/docs` |
 
 ## Deploy
