@@ -85,6 +85,7 @@ O [`Dockerfile`](Dockerfile) gera o frontend e roda tudo em um único serviço, 
 2. Adicione um **Volume** com o *mount path* `/data`. Sem ele, o banco é apagado a cada deploy.
 3. Defina as variáveis `SECRET_KEY`, `GEMINI_API_KEY` e, recomendado, `REGISTRATION_CODE`.
 4. Gere um domínio público e abra a URL no celular para instalar o app.
+5. Opcional, para gastar menos: em **Settings → Serverless**, ative o App Sleeping. O servidor dorme depois de 10 minutos sem uso e acorda no primeiro acesso; o app tenta de novo sozinho enquanto ele acorda.
 
 ## Estrutura
 

@@ -77,12 +77,14 @@ Para simular um celular no computador, abra o DevTools (`F12`) e ative o modo di
 | Mudei `models.py` e deu erro de coluna inexistente | Faltou gerar a migração (veja "Mudar o banco de dados") |
 | O deploy não sobe: "Defina a variável SECRET_KEY" | Em produção o app exige uma `SECRET_KEY` própria com 32+ caracteres |
 | Os dados sumiram depois do deploy | Falta o volume persistente em `/data` (veja o README) |
+| `npm run build` falha com `ERR_DLOPEN_FAILED` / erro 4551 | O Controle Inteligente de Aplicativos do Windows 11 bloqueou um binário nativo. O rollup já usa a versão WebAssembly (`overrides` no `package.json`); se outro pacote nativo for bloqueado, procure a versão `wasm` dele em vez de desligar a proteção |
 
 ## Decisões técnicas e o que muda se o app crescer
 
 - **Um único serviço.** Em produção, o FastAPI serve a API (`/api`) e também o build do React. Fica uma só URL e não é preciso configurar CORS. Em desenvolvimento, o Vite faz proxy de `/api` para o backend.
 - **SQLite.** Aguenta bem dezenas de usuários (com o modo WAL ligado, leituras não esperam gravações). Para muitos usuários simultâneos, troque para Postgres: com o SQLAlchemy e o Alembic, basta mudar a `DATABASE_URL` em `config.py`.
 - **Backup.** O banco inteiro é o arquivo `/data/axiigains.db` no volume. Faça cópias de vez em quando.
+- **Servidor que dorme (App Sleeping).** No deploy, o servidor pode desligar quando ninguém usa. A primeira requisição depois disso recebe 502 do proxy enquanto ele acorda. Por isso o `lib/api.js` tenta de novo sozinho (até 4 vezes, com 1s, 2s, 4s e 8s de espera) nos erros que vêm do proxy, e o login só é apagado num 401 de verdade.
 - **Login.** Token JWT de 30 dias, salvo no `localStorage`. É simples e adequado para um app entre amigos (a CSP reduz o risco de roubo do token). Para algo maior, considere tokens de curta duração com renovação automática.
 - **Histórico independente das fichas.** Cada série registrada guarda o *nome* do exercício, e não um vínculo com a ficha. Por isso editar ou apagar uma ficha não altera o histórico.
 - **Gemini.** A resposta é pedida em JSON, no formato do schema `AISuggestOut`. O plano gratuito tem limites de uso, e o Google pode usar os dados enviados para melhorar os modelos. Não envie informações sensíveis.
