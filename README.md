@@ -73,6 +73,7 @@ cd frontend && npm test                                       # funções de dat
 | `SECRET_KEY` | Chave que assina os tokens de login. Gere com `python -c "import secrets; print(secrets.token_urlsafe(48))"` |
 | `GEMINI_API_KEY` | Chave da API do Gemini ([obtenha aqui](https://aistudio.google.com/apikey)). Sem ela, o resto do app funciona normalmente |
 | `GEMINI_MODEL` | Modelo usado (padrão: `gemini-flash-latest`) |
+| `GEMINI_FALLBACK_MODELS` | Modelos reserva, usados quando o principal está sobrecarregado ou sem cota (padrão: `gemini-flash-lite-latest,gemini-3.7-flash,gemini-3.5-flash`) |
 | `DATA_DIR` | Pasta do banco SQLite (padrão: `backend/`) |
 | `REGISTRATION_CODE` | Opcional. Se definido, o cadastro exige esse código de convite |
 | `ADMIN_EMAILS` | Opcional. E-mails (separados por vírgula) que veem o **Painel do admin** no Perfil: usuários cadastrados e quem está treinando |

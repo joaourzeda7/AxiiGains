@@ -7,11 +7,18 @@ from dotenv import load_dotenv
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BACKEND_DIR / ".env")
 
+
+def _env(name: str, default: str = "") -> str:
+    """Lê uma variável tirando espaços, quebras de linha e aspas que vêm junto ao colar
+    o valor em painéis como o do Railway (um erro bobo que quebra a chave inteira)."""
+    return os.getenv(name, default).strip().strip("\"'").strip()
+
+
 # "production" no deploy (definido no Dockerfile); qualquer outro valor = desenvolvimento
 APP_ENV = os.getenv("APP_ENV", "development")
 IS_PRODUCTION = APP_ENV == "production"
 
-SECRET_KEY = os.getenv("SECRET_KEY", "")
+SECRET_KEY = _env("SECRET_KEY")
 if not SECRET_KEY or SECRET_KEY.startswith("troque"):
     if IS_PRODUCTION:
         # Sem uma chave própria, o app usaria a chave de desenvolvimento, que está no GitHub.
@@ -22,10 +29,16 @@ if not SECRET_KEY or SECRET_KEY.startswith("troque"):
 elif IS_PRODUCTION and len(SECRET_KEY) < 32:
     raise RuntimeError("SECRET_KEY curta demais: use pelo menos 32 caracteres aleatórios.")
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_API_KEY = _env("GEMINI_API_KEY")
 if GEMINI_API_KEY.startswith("sua_chave"):
     GEMINI_API_KEY = ""
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
+GEMINI_MODEL = _env("GEMINI_MODEL", "gemini-flash-latest")
+# Modelos reserva, usados quando o principal está sobrecarregado ou sem cota (separados por vírgula)
+GEMINI_FALLBACK_MODELS = [
+    m.strip()
+    for m in _env("GEMINI_FALLBACK_MODELS", "gemini-flash-lite-latest,gemini-3.7-flash,gemini-3.5-flash").split(",")
+    if m.strip() and m.strip() != GEMINI_MODEL
+]
 
 # Código de convite: se definido, só quem souber o código consegue criar conta.
 # Recomendado no deploy, para estranhos não usarem o app (e a sua cota do Gemini).

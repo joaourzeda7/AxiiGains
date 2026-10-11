@@ -117,3 +117,15 @@ def test_production_refuses_to_start_without_a_strong_secret(secret):
 
 def test_production_starts_with_a_strong_secret():
     assert _import_config(APP_ENV="production", SECRET_KEY="k" * 48).returncode == 0
+
+
+def test_pasted_secrets_are_cleaned():
+    """Valor colado com espaços, quebra de linha ou aspas (ex.: no painel do Railway) ainda funciona."""
+    result = subprocess.run(
+        [sys.executable, "-c", "import app.config as c; print(repr(c.GEMINI_API_KEY), repr(c.SECRET_KEY))"],
+        cwd=BACKEND_DIR,
+        env={**os.environ, "GEMINI_API_KEY": '  "AIzaChave123"\n', "SECRET_KEY": " 'k" + "x" * 40 + "'\n"},
+        capture_output=True,
+        text=True,
+    )
+    assert result.stdout.strip() == "'AIzaChave123' 'k" + "x" * 40 + "'"

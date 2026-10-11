@@ -72,6 +72,7 @@ Para simular um celular no computador, abra o DevTools (`F12`) e ative o modo di
 | `Activate.ps1 não pode ser carregado` | Rode `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` uma vez |
 | A IA diz "não configurada" | Falta a `GEMINI_API_KEY` no `.env`, ou o backend não foi reiniciado depois de editar (o `--reload` não percebe mudanças no `.env`) |
 | A IA diz "limite atingido" | O plano gratuito do Gemini limita as requisições por minuto e por dia. Espere um pouco |
+| A IA diz "sobrecarregado" | O Google recusou por excesso de demanda (erro 503 "high demand"), mesmo após tentar os modelos reserva. É temporário. O erro real de cada tentativa aparece no log do Railway (*Deployments → View logs*) |
 | O `uvicorn --reload` fica parado em "Reloading..." | Conexões abertas pelo proxy do Vite seguram o servidor antigo. Pare com `Ctrl+C` e suba de novo |
 | Fiz login no Safari, mas o app instalado pede login de novo | É normal: no iPhone, o app instalado tem um armazenamento separado do Safari |
 | O app instalado não atualiza | O service worker atualiza na próxima abertura. Feche o app completamente e abra de novo |

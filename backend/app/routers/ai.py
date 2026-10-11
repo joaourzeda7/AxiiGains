@@ -1,14 +1,22 @@
+import logging
+import time
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from google import genai
 from google.genai import errors, types
 
-from app.config import GEMINI_API_KEY, GEMINI_MODEL
+from app.config import GEMINI_API_KEY, GEMINI_FALLBACK_MODELS, GEMINI_MODEL
 from app.models import User
 from app.ratelimit import ai_limiter
 from app.schemas import AISuggestIn, AISuggestOut
 from app.security import get_current_user
 
 router = APIRouter(prefix="/ai", tags=["IA"])
+logger = logging.getLogger("axiigains.ai")
+
+RETRYABLE = {500, 503, 504}  # erros temporários do lado do Google
+ATTEMPTS_PER_MODEL = 2
+RETRY_DELAY_SECONDS = 1.5
 
 GOALS = {
     "hipertrofia": "ganho de massa muscular (hipertrofia)",
@@ -62,32 +70,59 @@ def suggest_plan(data: AISuggestIn, user: User = Depends(get_current_user)):
 
     # "def" normal (sem async): o FastAPI roda em uma thread separada,
     # então esperar o Gemini não trava as outras requisições.
-    try:
-        response = _get_client().models.generate_content(
-            model=GEMINI_MODEL,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=SYSTEM_PROMPT,
-                # Pedimos JSON no formato exato do schema → nada de "parsear" texto livre
-                response_mime_type="application/json",
-                response_schema=AISuggestOut,
-                temperature=0.7,
-            ),
-        )
-    except errors.APIError as e:
-        if e.code == 429:
-            detail = "Limite gratuito do Gemini atingido. Tente de novo em alguns minutos."
-        elif e.code in (400, 401, 403):
-            detail = "A chave do Gemini é inválida ou não tem permissão."
-        elif e.code == 404:
-            detail = f"Modelo '{GEMINI_MODEL}' não encontrado. Ajuste GEMINI_MODEL no .env."
-        else:
-            detail = "O Gemini está indisponível agora. Tente novamente."
-        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail)
+    config = types.GenerateContentConfig(
+        system_instruction=SYSTEM_PROMPT,
+        # Pedimos JSON no formato exato do schema → nada de "parsear" texto livre
+        response_mime_type="application/json",
+        response_schema=AISuggestOut,
+        temperature=0.7,
+    )
+    return _generate_with_fallback(prompt, config)
 
-    result = response.parsed
-    if not isinstance(result, AISuggestOut) or not result.plans:
-        raise HTTPException(
-            status.HTTP_502_BAD_GATEWAY, "A IA devolveu uma resposta inesperada. Tente de novo."
-        )
-    return result
+
+def _generate_with_fallback(prompt: str, config: types.GenerateContentConfig) -> AISuggestOut:
+    """Tenta o modelo principal e, se ele falhar, os reservas (GEMINI_FALLBACK_MODELS).
+
+    - 500/503/504 (Google sobrecarregado, "high demand"): tenta mais uma vez o mesmo
+      modelo após uma pausa e depois passa para o próximo.
+    - 429 (cota esgotada) ou 404 (modelo indisponível): passa direto para o próximo.
+      No plano gratuito a cota é separada por modelo, então o reserva costuma funcionar.
+    - 400/401/403 (chave inválida): não adianta tentar outro modelo; para na hora.
+    """
+    client = _get_client()
+    last_code = None
+    for model in [GEMINI_MODEL, *GEMINI_FALLBACK_MODELS]:
+        for attempt in range(1, ATTEMPTS_PER_MODEL + 1):
+            try:
+                response = client.models.generate_content(model=model, contents=prompt, config=config)
+            except errors.APIError as e:
+                last_code = e.code
+                # O erro real vai para o log do servidor (no Railway: Deployments → View logs)
+                logger.warning("Gemini %s falhou (tentativa %d): %s %s", model, attempt, e.code, e.message)
+                if e.code in (400, 401, 403):
+                    raise HTTPException(
+                        status.HTTP_503_SERVICE_UNAVAILABLE,
+                        "A chave do Gemini é inválida ou não tem permissão.",
+                    )
+                if e.code in RETRYABLE and attempt < ATTEMPTS_PER_MODEL:
+                    time.sleep(RETRY_DELAY_SECONDS)
+                    continue
+                break  # próximo modelo
+
+            result = response.parsed
+            if isinstance(result, AISuggestOut) and result.plans:
+                if model != GEMINI_MODEL:
+                    logger.warning("Gemini: plano gerado com o modelo reserva %s", model)
+                return result
+            logger.warning("Gemini %s devolveu resposta vazia ou fora do formato", model)
+            break  # próximo modelo
+
+    if last_code == 429:
+        detail = "Limite gratuito do Gemini atingido. Tente de novo em alguns minutos."
+    elif last_code == 404:
+        detail = "Nenhum modelo do Gemini configurado está disponível. Ajuste GEMINI_MODEL."
+    elif last_code is None:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "A IA devolveu uma resposta inesperada. Tente de novo.")
+    else:
+        detail = "O Gemini está sobrecarregado agora (pico de uso no Google). Tente de novo em alguns minutos."
+    raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail)
