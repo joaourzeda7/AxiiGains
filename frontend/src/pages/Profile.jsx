@@ -1,14 +1,14 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { ChevronRight, LogOut, Share, ShieldCheck, SquarePlus } from "lucide-react";
+import { Camera, ChevronRight, Loader2, LogOut, Share, ShieldCheck, SquarePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ChoiceChips, PageHeader, SubmitButton } from "@/components/common";
+import { Avatar, ChoiceChips, PageHeader, SubmitButton } from "@/components/common";
 import { useAuth } from "@/context/AuthContext";
-import { errorMessage } from "@/lib/api";
+import api, { errorMessage } from "@/lib/api";
 import { GOALS, LEVELS } from "@/lib/format";
 
 const toOptions = (labels) => Object.entries(labels).map(([value, label]) => ({ value, label }));
@@ -54,6 +54,8 @@ export default function Profile() {
         title={isOnboarding ? "Seu perfil" : "Perfil"}
         subtitle={isOnboarding ? "Conte um pouco sobre seu treino" : user.email}
       />
+
+      <AvatarPicker />
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <div className="grid gap-2">
@@ -128,5 +130,86 @@ export default function Profile() {
         </Button>
       )}
     </>
+  );
+}
+
+const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
+
+/** Foto de perfil com botão de câmera para trocar e opção de remover. */
+function AvatarPicker() {
+  const { user, setUser } = useAuth();
+  const inputRef = useRef(null);
+  const [busy, setBusy] = useState(false);
+
+  async function handleFile(e) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // permite escolher a mesma foto de novo depois
+    if (!file) return;
+    if (file.size > MAX_PHOTO_BYTES) {
+      toast.error("Foto grande demais (máximo 8 MB).");
+      return;
+    }
+    const form = new FormData();
+    form.append("file", file);
+    setBusy(true);
+    try {
+      const { data } = await api.put("/auth/me/avatar", form);
+      setUser(data);
+      toast.success("Foto atualizada!");
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleRemove() {
+    setBusy(true);
+    try {
+      const { data } = await api.delete("/auth/me/avatar");
+      setUser(data);
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mb-6 flex items-center gap-4">
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        disabled={busy}
+        className="relative shrink-0"
+        aria-label="Trocar foto de perfil"
+      >
+        <Avatar user={user} className="size-20 text-3xl" />
+        <span className="absolute -right-1 -bottom-1 flex size-8 items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground">
+          {busy ? <Loader2 className="size-4 animate-spin" /> : <Camera className="size-4" />}
+        </span>
+      </button>
+      <div className="min-w-0">
+        <p className="truncate font-semibold">{user.name}</p>
+        <div className="mt-1 flex gap-3 text-sm">
+          <button type="button" className="text-brand-soft" onClick={() => inputRef.current?.click()} disabled={busy}>
+            {user.avatar_url ? "Trocar foto" : "Adicionar foto"}
+          </button>
+          {user.avatar_url && (
+            <button type="button" className="text-muted-foreground" onClick={handleRemove} disabled={busy}>
+              Remover
+            </button>
+          )}
+        </div>
+      </div>
+      {/* No iPhone, aceitar só JPG/PNG/WebP faz o próprio Safari converter as fotos HEIC */}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={handleFile}
+      />
+    </div>
   );
 }

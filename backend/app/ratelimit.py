@@ -52,5 +52,6 @@ def client_ip(request: Request) -> str:
 login_limiter = RateLimiter(10, 5 * 60, "Muitas tentativas de login. Aguarde alguns minutos e tente de novo.")
 register_limiter = RateLimiter(5, 60 * 60, "Muitos cadastros a partir desta rede. Tente mais tarde.")
 ai_limiter = RateLimiter(8, 60 * 60, "Você atingiu o limite de 8 planos por hora. Tente de novo mais tarde.")
+avatar_limiter = RateLimiter(10, 60 * 60, "Você trocou de foto muitas vezes. Tente de novo mais tarde.")
 
-ALL_LIMITERS = (login_limiter, register_limiter, ai_limiter)
+ALL_LIMITERS = (login_limiter, register_limiter, ai_limiter, avatar_limiter)

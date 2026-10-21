@@ -152,6 +152,29 @@ def test_superset_column_keeps_every_planned_set(tmp_path):
     assert "linked_to_next" not in {c["name"] for c in inspect(engine).get_columns("plan_exercises")}
 
 
+def test_photo_column_keeps_every_user_and_their_data(tmp_path):
+    """users é a raiz de tudo: recriar essa tabela apagaria, em cascata, os dados de todo mundo."""
+    engine = _engine(tmp_path)
+    _migrate_to(engine, INITIAL_REVISION)
+    _seed_old_plans(engine)
+    with engine.begin() as conn:
+        conn.execute(text("INSERT INTO workout_sessions (id, user_id, plan_name, date, created_at) VALUES (1, 1, 'A', '2026-10-01', '2026-10-01')"))
+        conn.execute(text("INSERT INTO set_logs (session_id, exercise_name, set_number, reps, weight) VALUES (1, 'Supino', 1, 10, 40)"))
+        conn.execute(text("INSERT INTO body_measurements (user_id, date, weight) VALUES (1, '2026-10-01', 80)"))
+
+    run_migrations(engine)  # todas as migrações até a da foto
+
+    counts = {}
+    with engine.connect() as conn:
+        for table in ("users", "workout_plans", "plan_exercises", "plan_sets", "workout_sessions", "set_logs", "body_measurements"):
+            counts[table] = conn.execute(text(f"SELECT count(*) FROM {table}")).scalar()
+        assert conn.execute(text("SELECT avatar FROM users")).scalar() is None
+    assert counts == {
+        "users": 1, "workout_plans": 1, "plan_exercises": 2, "plan_sets": 5,
+        "workout_sessions": 1, "set_logs": 1, "body_measurements": 1,
+    }
+
+
 def test_downgrade_removes_everything(tmp_path):
     engine = _engine(tmp_path)
     run_migrations(engine)

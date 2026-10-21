@@ -5,6 +5,30 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
 
+/** Foto de perfil; sem foto, a inicial do nome num círculo roxo. */
+export function Avatar({ user, className }) {
+  if (user.avatar_url) {
+    return (
+      <img
+        src={user.avatar_url}
+        alt={`Foto de ${user.name}`}
+        className={cn("shrink-0 rounded-full object-cover ring-2 ring-primary/40", className)}
+      />
+    );
+  }
+  return (
+    <div
+      aria-hidden
+      className={cn(
+        "title-rune flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#8f6bff] to-[#2a1466] font-bold text-white ring-2 ring-primary/40",
+        className,
+      )}
+    >
+      {user.name.trim()[0]?.toUpperCase()}
+    </div>
+  );
+}
+
 export function Logo({ className }) {
   return (
     <img

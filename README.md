@@ -22,7 +22,8 @@
 
 ## Funcionalidades
 
-- **Fichas de treino:** exercícios com séries, repetições, carga e descanso.
+- **Fichas de treino:** cada série com a própria carga e repetições (pirâmide, drop-set) e exercícios em bi-set, tri-set ou circuito.
+- **Foto de perfil:** recortada, reduzida e sem metadados (a localização GPS da foto é descartada).
 - **Modo treino:** registro série a série, cronômetro de descanso e o recorde de cada exercício à vista. O progresso é salvo automaticamente se o app fechar.
 - **Sinal conjurado:** ao concluir um treino, uma animação do olho de bruxo apresenta o resumo (duração, séries, volume) e os novos recordes.
 - **Início:** próximo treino da rotação (A → B → C), meta semanal com os dias treinados e a variação de peso.

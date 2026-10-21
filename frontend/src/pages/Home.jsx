@@ -4,7 +4,7 @@ import { ChevronRight, Dumbbell, Minus, Play, Scale, Sparkles, TrendingDown, Tre
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Logo, ProgressRing, SectionTitle } from "@/components/common";
+import { Avatar, Logo, ProgressRing, SectionTitle } from "@/components/common";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
 import { currentWeekDates, estimateMinutes, formatKg, formatRelative, todayISO } from "@/lib/format";
@@ -41,7 +41,13 @@ export default function Home() {
             <p className="text-sm text-muted-foreground">{greeting()},</p>
             <h1 className="title-rune text-3xl font-bold">{firstName}</h1>
           </div>
-          <Logo className="size-11" />
+          {user.avatar_url ? (
+            <Link to="/perfil" aria-label="Perfil">
+              <Avatar user={user} className="size-11" />
+            </Link>
+          ) : (
+            <Logo className="size-11" />
+          )}
         </div>
         <div className="rule-fade mt-4" />
       </header>

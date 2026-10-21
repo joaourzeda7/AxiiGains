@@ -78,6 +78,7 @@ class UserOut(ORM):
     level: str | None
     days_per_week: int | None
     equipment: str | None
+    avatar_url: str | None = None
     is_admin: bool = False
 
 

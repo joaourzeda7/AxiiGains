@@ -52,6 +52,8 @@ O GitHub Actions (`.github/workflows/ci.yml`) roda tudo isso a cada push, audita
 | Limite de tentativas: login (10 a cada 5 min por IP), cadastro (5/h por IP), IA (8/h por usuário) | `ratelimit.py` |
 | Código de convite opcional para cadastro (`REGISTRATION_CODE`) | `routers/auth.py` |
 | Painel de admin só para quem está em `ADMIN_EMAILS` (os outros recebem 403); senhas nunca aparecem | `routers/admin.py` |
+| Foto de perfil: só JPG/PNG/WebP/GIF de verdade, até 8 MB, sem bombas de descompressão; regravada em 256×256 **sem EXIF** (remove o GPS); nome aleatório de 128 bits | `avatars.py`, `routers/avatars.py` |
+| Requisições acima de 10 MB recusadas antes de serem lidas | `main.py` |
 | Toda consulta filtra pelo dono dos dados (evita IDOR) | `routers/*.py` |
 | JWT com algoritmo fixo e validade obrigatória | `security.py` |
 | Em produção: não sobe sem `SECRET_KEY` forte; `/docs` desligado | `config.py`, `main.py` |

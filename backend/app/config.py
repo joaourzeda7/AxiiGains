@@ -54,6 +54,10 @@ if not DATA_DIR.is_absolute():
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 DATABASE_URL = f"sqlite:///{DATA_DIR / 'axiigains.db'}"
 
+# Fotos de perfil ficam ao lado do banco (no deploy, dentro do volume /data)
+AVATAR_DIR = DATA_DIR / "avatars"
+AVATAR_DIR.mkdir(exist_ok=True)
+
 TOKEN_EXPIRE_DAYS = 30
 
 # Build do frontend (frontend/dist). Se existir, o backend também serve o app.

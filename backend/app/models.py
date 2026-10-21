@@ -31,10 +31,16 @@ class User(Base):
     level: Mapped[str | None] = mapped_column(String(20))  # iniciante, intermediario, avancado
     days_per_week: Mapped[int | None] = mapped_column(Integer)
     equipment: Mapped[str | None] = mapped_column(String(200))
+    # Nome do arquivo da foto em AVATAR_DIR (aleatório, ex.: "3f9a...c1.webp")
+    avatar: Mapped[str | None] = mapped_column(String(64))
 
     plans: Mapped[list["WorkoutPlan"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
+
+    @property
+    def avatar_url(self) -> str | None:
+        return f"/api/avatars/{self.avatar}" if self.avatar else None
 
     @property
     def is_admin(self) -> bool:

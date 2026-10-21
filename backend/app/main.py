@@ -3,14 +3,14 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.config import FRONTEND_DIST, IS_PRODUCTION
 from app.database import get_db
 from app.migrate import run_migrations
-from app.routers import admin, ai, auth, measurements, plans, progress, sessions
+from app.routers import admin, ai, auth, avatars, measurements, plans, progress, sessions
 
 
 @asynccontextmanager
@@ -62,8 +62,16 @@ CONTENT_SECURITY_POLICY = "; ".join(
 )
 
 
+# Maior corpo de requisição aceito (a foto de perfil tem até 8 MB + o envelope do formulário)
+MAX_BODY_BYTES = 10 * 1024 * 1024
+
+
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
+    # Recusa uploads enormes ANTES de ler o corpo (senão o servidor gravaria tudo em disco)
+    length = request.headers.get("content-length")
+    if length and length.isdigit() and int(length) > MAX_BODY_BYTES:
+        return JSONResponse({"detail": "Arquivo grande demais."}, status_code=413)
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"  # não "adivinhar" o tipo do arquivo
     response.headers["X-Frame-Options"] = "DENY"  # ninguém coloca o app dentro de um iframe
@@ -74,8 +82,8 @@ async def security_headers(request: Request, call_next):
     if request.url.scheme == "https":
         # Avisa o navegador para usar sempre HTTPS neste domínio
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-    if request.url.path.startswith("/api/"):
-        # Respostas da API têm dados pessoais: não guardar em cache
+    if request.url.path.startswith("/api/") and not request.url.path.startswith("/api/avatars/"):
+        # Respostas da API têm dados pessoais: não guardar em cache (as fotos têm cache próprio)
         response.headers["Cache-Control"] = "no-store"
     return response
 
@@ -91,7 +99,7 @@ def health(db: Session = Depends(get_db)):
     return {"message": "AxiiGains API rodando!"}
 
 
-for module in (auth, plans, sessions, measurements, progress, ai, admin):
+for module in (auth, avatars, plans, sessions, measurements, progress, ai, admin):
     api.include_router(module.router)
 app.include_router(api)
 
