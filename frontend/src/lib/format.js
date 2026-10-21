@@ -61,7 +61,7 @@ export function sessionVolume(session) {
 
 /** Duração estimada de uma ficha: ~40s por série + o descanso. Arredonda para 5 min. */
 export function estimateMinutes(plan) {
-  const seconds = plan.exercises.reduce((total, ex) => total + ex.sets * (40 + (ex.rest_seconds ?? 60)), 0);
+  const seconds = plan.exercises.reduce((total, ex) => total + ex.sets.length * (40 + (ex.rest_seconds ?? 60)), 0);
   return Math.max(5, Math.round(seconds / 60 / 5) * 5);
 }
 
@@ -76,4 +76,11 @@ export function currentWeekDates() {
     d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
     return d.toISOString().slice(0, 10);
   });
+}
+
+/** Resumo das séries planejadas: "3 × 10" se forem iguais, "12 · 10 · 8" se variarem. */
+export function describeSets(sets) {
+  const reps = sets.map((s) => String(s.reps));
+  if (reps.length === 0) return "";
+  return reps.every((r) => r === reps[0]) ? `${reps.length} × ${reps[0]}` : reps.join(" · ");
 }

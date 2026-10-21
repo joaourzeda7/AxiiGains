@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowDown, ArrowUp, Loader2, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Loader2, Plus, Trash2, X } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,16 +22,22 @@ import { PageHeader, SubmitButton } from "@/components/common";
 import api, { errorMessage } from "@/lib/api";
 import { parseNumber } from "@/lib/format";
 
-// Cada exercício ganha uma "key" local para o React não confundir os itens ao reordenar
+const MAX_SETS = 20;
+
+// Cada exercício e cada série ganham uma "key" local para o React não confundir os itens
+// ao reordenar ou remover (o índice muda; a key, não)
 let nextKey = 1;
+const newSet = (data = {}) => ({
+  key: nextKey++,
+  reps: data.reps ?? "10",
+  weight: data.weight != null ? String(data.weight).replace(".", ",") : "",
+});
 const newExercise = (data = {}) => ({
   key: nextKey++,
   name: data.name ?? "",
-  sets: String(data.sets ?? 3),
-  reps: data.reps ?? "10",
-  weight: data.weight != null ? String(data.weight).replace(".", ",") : "",
   rest_seconds: data.rest_seconds != null ? String(data.rest_seconds) : "60",
   notes: data.notes ?? "",
+  sets: data.sets?.length ? data.sets.map(newSet) : [newSet(), newSet(), newSet()],
 });
 
 export default function PlanEditor() {
@@ -60,8 +66,9 @@ export default function PlanEditor() {
       .finally(() => setLoading(false));
   }, [id, isNew, navigate]);
 
-  const update = (key, field, value) =>
-    setExercises((list) => list.map((ex) => (ex.key === key ? { ...ex, [field]: value } : ex)));
+  /** Aplica `change(exercício)` só no exercício com essa key. */
+  const updateExercise = (key, change) =>
+    setExercises((list) => list.map((ex) => (ex.key === key ? { ...ex, ...change(ex) } : ex)));
 
   const move = (index, delta) =>
     setExercises((list) => {
@@ -78,11 +85,9 @@ export default function PlanEditor() {
       notes: notes.trim() || null,
       exercises: filled.map((ex) => ({
         name: ex.name.trim(),
-        sets: Number(ex.sets) || 1,
-        reps: ex.reps.trim() || "10",
-        weight: parseNumber(ex.weight),
         rest_seconds: ex.rest_seconds === "" ? null : Number(ex.rest_seconds),
         notes: ex.notes.trim() || null,
+        sets: ex.sets.map((s) => ({ reps: s.reps.trim() || "10", weight: parseNumber(s.weight) })),
       })),
     };
     setSaving(true);
@@ -138,87 +143,19 @@ export default function PlanEditor() {
           <Textarea id="plan-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
         </div>
 
-        <h2 className="mt-2 text-lg font-semibold">Exercícios</h2>
+        <h2 className="title-rune mt-2 text-lg font-bold">Exercícios</h2>
 
         {exercises.map((ex, i) => (
-          <Card key={ex.key} className="gap-3 py-4">
-            <CardContent className="flex flex-col gap-3 px-4">
-              <div className="flex items-center gap-2">
-                <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-brand-soft">
-                  {i + 1}
-                </span>
-                <Input
-                  placeholder="Nome do exercício"
-                  value={ex.name}
-                  onChange={(e) => update(ex.key, "name", e.target.value)}
-                  maxLength={80}
-                  aria-label="Nome do exercício"
-                />
-              </div>
-
-              <div className="grid grid-cols-4 gap-2">
-                <Field label="Séries">
-                  <Input
-                    inputMode="numeric"
-                    value={ex.sets}
-                    onChange={(e) => update(ex.key, "sets", e.target.value.replace(/\D/g, ""))}
-                  />
-                </Field>
-                <Field label="Reps">
-                  <Input value={ex.reps} onChange={(e) => update(ex.key, "reps", e.target.value)} maxLength={20} />
-                </Field>
-                <Field label="Carga (kg)">
-                  <Input
-                    inputMode="decimal"
-                    placeholder="—"
-                    value={ex.weight}
-                    onChange={(e) => update(ex.key, "weight", e.target.value.replace(/[^\d.,]/g, ""))}
-                  />
-                </Field>
-                <Field label="Desc. (s)">
-                  <Input
-                    inputMode="numeric"
-                    value={ex.rest_seconds}
-                    onChange={(e) => update(ex.key, "rest_seconds", e.target.value.replace(/\D/g, ""))}
-                  />
-                </Field>
-              </div>
-
-              <Input
-                placeholder="Observação (ex.: pegada fechada)"
-                value={ex.notes}
-                onChange={(e) => update(ex.key, "notes", e.target.value)}
-                maxLength={200}
-                className="text-sm"
-              />
-
-              <div className="flex justify-end gap-1">
-                <Button type="button" variant="ghost" size="icon-sm" disabled={i === 0} onClick={() => move(i, -1)} aria-label="Subir">
-                  <ArrowUp />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  disabled={i === exercises.length - 1}
-                  onClick={() => move(i, 1)}
-                  aria-label="Descer"
-                >
-                  <ArrowDown />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  className="text-destructive"
-                  onClick={() => setExercises((list) => list.filter((x) => x.key !== ex.key))}
-                  aria-label="Remover exercício"
-                >
-                  <Trash2 />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <ExerciseCard
+            key={ex.key}
+            index={i}
+            exercise={ex}
+            isFirst={i === 0}
+            isLast={i === exercises.length - 1}
+            onChange={(change) => updateExercise(ex.key, change)}
+            onMove={(delta) => move(i, delta)}
+            onRemove={() => setExercises((list) => list.filter((x) => x.key !== ex.key))}
+          />
         ))}
 
         <Button type="button" variant="outline" className="h-12 border-dashed" onClick={() => setExercises([...exercises, newExercise()])}>
@@ -257,11 +194,128 @@ export default function PlanEditor() {
   );
 }
 
-function Field({ label, children }) {
+function ExerciseCard({ index, exercise: ex, isFirst, isLast, onChange, onMove, onRemove }) {
+  const setField = (field, value) => onChange(() => ({ [field]: value }));
+  const updateSet = (key, field, value) =>
+    onChange((e) => ({ sets: e.sets.map((s) => (s.key === key ? { ...s, [field]: value } : s)) }));
+  // Nova série copia a anterior: quem faz todas iguais só aperta o botão
+  const addSet = () =>
+    onChange((e) => ({ sets: [...e.sets, newSet({ ...e.sets.at(-1), weight: parseNumber(e.sets.at(-1)?.weight) })] }));
+  const removeSet = (key) => onChange((e) => ({ sets: e.sets.filter((s) => s.key !== key) }));
+
   return (
-    <label className="grid gap-1">
-      <span className="text-[11px] text-muted-foreground">{label}</span>
-      {children}
-    </label>
+    <Card className="gap-3 py-4">
+      <CardContent className="flex flex-col gap-3 px-4">
+        <div className="flex items-center gap-2">
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-brand-soft">
+            {index + 1}
+          </span>
+          <Input
+            placeholder="Nome do exercício"
+            value={ex.name}
+            onChange={(e) => setField("name", e.target.value)}
+            maxLength={80}
+            aria-label="Nome do exercício"
+          />
+        </div>
+
+        {/* Tabela de séries: cada uma com suas reps e carga */}
+        <div className="grid grid-cols-[2rem_1fr_1fr_2.25rem] items-center gap-x-2 gap-y-1.5">
+          <span className="text-center text-[10px] tracking-wider text-muted-foreground uppercase">Série</span>
+          <span className="text-[10px] tracking-wider text-muted-foreground uppercase">Carga (kg)</span>
+          <span className="text-[10px] tracking-wider text-muted-foreground uppercase">Reps</span>
+          <span />
+          {ex.sets.map((s, j) => (
+            <SetRow
+              key={s.key}
+              number={j + 1}
+              set={s}
+              canRemove={ex.sets.length > 1}
+              onChange={(field, value) => updateSet(s.key, field, value)}
+              onRemove={() => removeSet(s.key)}
+            />
+          ))}
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="self-start text-brand-soft"
+          disabled={ex.sets.length >= MAX_SETS}
+          onClick={addSet}
+        >
+          <Plus /> Série
+        </Button>
+
+        <div className="grid grid-cols-[6rem_1fr] gap-2">
+          <label className="grid gap-1">
+            <span className="text-[11px] text-muted-foreground">Descanso (s)</span>
+            <Input
+              inputMode="numeric"
+              value={ex.rest_seconds}
+              onChange={(e) => setField("rest_seconds", e.target.value.replace(/\D/g, ""))}
+            />
+          </label>
+          <label className="grid gap-1">
+            <span className="text-[11px] text-muted-foreground">Observação</span>
+            <Input
+              placeholder="Ex.: pegada fechada"
+              value={ex.notes}
+              onChange={(e) => setField("notes", e.target.value)}
+              maxLength={200}
+              className="text-sm"
+            />
+          </label>
+        </div>
+
+        <div className="flex justify-end gap-1">
+          <Button type="button" variant="ghost" size="icon-sm" disabled={isFirst} onClick={() => onMove(-1)} aria-label="Subir">
+            <ArrowUp />
+          </Button>
+          <Button type="button" variant="ghost" size="icon-sm" disabled={isLast} onClick={() => onMove(1)} aria-label="Descer">
+            <ArrowDown />
+          </Button>
+          <Button type="button" variant="ghost" size="icon-sm" className="text-destructive" onClick={onRemove} aria-label="Remover exercício">
+            <Trash2 />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SetRow({ number, set, canRemove, onChange, onRemove }) {
+  return (
+    <>
+      <span className="flex size-7 items-center justify-center justify-self-center rounded-full bg-secondary text-xs font-semibold">
+        {number}
+      </span>
+      <Input
+        inputMode="decimal"
+        placeholder="—"
+        value={set.weight}
+        onChange={(e) => onChange("weight", e.target.value.replace(/[^\d.,]/g, ""))}
+        className="h-10"
+        aria-label={`Carga da série ${number}`}
+      />
+      <Input
+        value={set.reps}
+        onChange={(e) => onChange("reps", e.target.value)}
+        maxLength={20}
+        className="h-10"
+        aria-label={`Repetições da série ${number}`}
+      />
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        disabled={!canRemove}
+        onClick={onRemove}
+        aria-label={`Remover série ${number}`}
+        className="text-muted-foreground"
+      >
+        <X />
+      </Button>
+    </>
   );
 }

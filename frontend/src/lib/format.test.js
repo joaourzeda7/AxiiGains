@@ -7,6 +7,7 @@ process.env.TZ = "America/Sao_Paulo";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   currentWeekDates,
+  describeSets,
   estimateMinutes,
   firstNumber,
   formatKg,
@@ -125,18 +126,31 @@ describe("formatKg", () => {
 
 describe("estimateMinutes", () => {
   it("soma ~40s por série mais o descanso e arredonda para 5 min", () => {
-    const plan = { exercises: [{ sets: 4, rest_seconds: 90 }, { sets: 3, rest_seconds: 60 }] };
+    const sets = (n) => Array.from({ length: n }, () => ({ reps: "10", weight: null }));
+    const plan = { exercises: [{ sets: sets(4), rest_seconds: 90 }, { sets: sets(3), rest_seconds: 60 }] };
     // 4 × 130s + 3 × 100s = 820s ≈ 13,7 min → 15
     expect(estimateMinutes(plan)).toBe(15);
   });
 
   it("usa 60s de descanso quando não informado e nunca devolve menos de 5", () => {
-    expect(estimateMinutes({ exercises: [{ sets: 1, rest_seconds: null }] })).toBe(5);
+    expect(estimateMinutes({ exercises: [{ sets: [{ reps: "10" }], rest_seconds: null }] })).toBe(5);
   });
 });
 
 describe("sessionVolume", () => {
   it("soma repetições × carga", () => {
     expect(sessionVolume({ sets: [{ reps: 10, weight: 40 }, { reps: 8, weight: 45 }] })).toBe(760);
+  });
+});
+
+describe("describeSets", () => {
+  it.each([
+    [[{ reps: "10" }, { reps: "10" }, { reps: "10" }], "3 × 10"],
+    [[{ reps: "8-12" }, { reps: "8-12" }], "2 × 8-12"],
+    [[{ reps: "12" }, { reps: "10" }, { reps: "8" }], "12 · 10 · 8"],
+    [[{ reps: "15" }], "1 × 15"],
+    [[], ""],
+  ])("%j → %s", (sets, expected) => {
+    expect(describeSets(sets)).toBe(expected);
   });
 });

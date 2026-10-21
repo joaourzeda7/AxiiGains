@@ -95,8 +95,11 @@ export default function AICoach() {
             notes: plan.notes,
             exercises: plan.exercises.map((ex) => ({
               name: ex.name.slice(0, 80),
-              sets: Math.min(Math.max(ex.sets, 1), 20),
-              reps: String(ex.reps).slice(0, 20),
+              // A IA sugere "3 × 10": viram 3 séries iguais, sem carga (cada um ajusta a sua)
+              sets: Array.from({ length: Math.min(Math.max(ex.sets, 1), 20) }, () => ({
+                reps: String(ex.reps).slice(0, 20),
+                weight: null,
+              })),
               rest_seconds: Math.min(Math.max(ex.rest_seconds, 0), 900),
               notes: ex.notes?.slice(0, 200) || null,
             })),

@@ -69,7 +69,7 @@ def auth(register):
 def make_plan(client):
     def _make_plan(headers, name="Treino A", exercises=None):
         exercises = exercises if exercises is not None else [
-            {"name": "Supino", "sets": 3, "reps": "8-12", "weight": 40, "rest_seconds": 90}
+            {"name": "Supino", "sets": series(("8-12", 40), ("8-12", 40), ("8-12", 40)), "rest_seconds": 90}
         ]
         r = client.post("/api/plans", headers=headers, json={"name": name, "exercises": exercises})
         assert r.status_code == 201, r.text
@@ -92,6 +92,11 @@ def make_session(client):
         return r.json()
 
     return _make_session
+
+
+def series(*pairs):
+    """series(("12", 40), ("10", 45)) → séries planejadas de um exercício da ficha."""
+    return [{"reps": reps, "weight": weight} for reps, weight in pairs]
 
 
 def sets_of(exercise, *pairs):

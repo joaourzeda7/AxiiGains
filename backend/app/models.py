@@ -1,6 +1,6 @@
 """Tabelas do banco de dados.
 
-Usuário ─┬─ Fichas (WorkoutPlan) ── Exercícios da ficha (PlanExercise)
+Usuário ─┬─ Fichas (WorkoutPlan) ── Exercícios (PlanExercise) ── Séries planejadas (PlanSet)
          ├─ Treinos realizados (WorkoutSession) ── Séries feitas (SetLog)
          └─ Medidas corporais (BodyMeasurement)
 """
@@ -70,13 +70,32 @@ class PlanExercise(Base):
     )
     position: Mapped[int] = mapped_column(Integer, default=0)  # ordem na ficha
     name: Mapped[str] = mapped_column(String(80))
-    sets: Mapped[int] = mapped_column(Integer, default=3)
-    reps: Mapped[str] = mapped_column(String(20), default="10")  # texto: aceita "8-12"
-    weight: Mapped[float | None] = mapped_column(Float)  # carga em kg
     rest_seconds: Mapped[int | None] = mapped_column(Integer)
     notes: Mapped[str | None] = mapped_column(String(200))
 
     plan: Mapped[WorkoutPlan] = relationship(back_populates="exercises")
+    # Cada série tem as próprias reps e carga: dá para montar pirâmide, drop-set etc.
+    sets: Mapped[list["PlanSet"]] = relationship(
+        back_populates="exercise",
+        cascade="all, delete-orphan",
+        order_by="PlanSet.position",
+    )
+
+
+class PlanSet(Base):
+    """Uma série planejada de um exercício da ficha, ex.: 12 reps com 40 kg."""
+
+    __tablename__ = "plan_sets"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    exercise_id: Mapped[int] = mapped_column(
+        ForeignKey("plan_exercises.id", ondelete="CASCADE"), index=True
+    )
+    position: Mapped[int] = mapped_column(Integer, default=0)  # 1ª, 2ª, 3ª série...
+    reps: Mapped[str] = mapped_column(String(20), default="10")  # texto: aceita "8-12"
+    weight: Mapped[float | None] = mapped_column(Float)  # carga em kg
+
+    exercise: Mapped[PlanExercise] = relationship(back_populates="sets")
 
 
 class WorkoutSession(Base):

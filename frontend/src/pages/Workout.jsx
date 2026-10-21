@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import CastAnimation from "@/components/CastAnimation";
 import { ProgressRing, SubmitButton } from "@/components/common";
 import api, { errorMessage } from "@/lib/api";
-import { firstNumber, formatKg, parseNumber, todayISO } from "@/lib/format";
+import { describeSets, firstNumber, formatKg, parseNumber, todayISO } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const draftKey = (planId) => `axii_workout_${planId}`;
@@ -45,12 +45,13 @@ function buildDraft(plan) {
     startedAt: Date.now(),
     exercises: plan.exercises.map((ex) => ({
       name: ex.name,
-      targetReps: ex.reps,
+      target: describeSets(ex.sets),
       rest: ex.rest_seconds ?? 60,
       notes: ex.notes,
-      sets: Array.from({ length: ex.sets }, () => ({
-        reps: String(firstNumber(ex.reps) ?? ""),
-        weight: ex.weight != null ? String(ex.weight).replace(".", ",") : "",
+      // Cada série já vem preenchida com a meta dela (pirâmide: 12×40, 10×45, 8×50...)
+      sets: ex.sets.map((s) => ({
+        reps: String(firstNumber(s.reps) ?? ""),
+        weight: s.weight != null ? String(s.weight).replace(".", ",") : "",
         done: false,
       })),
     })),
@@ -179,20 +180,7 @@ export default function Workout() {
       await api.post("/sessions", { plan_id: plan.id, plan_name: plan.name, date: todayISO(), sets });
 
       if (updatePlan) {
-        // Atualiza a carga da ficha com a maior carga usada hoje em cada exercício
-        const maxByExercise = maxWeights(sets);
-        await api.put(`/plans/${plan.id}`, {
-          name: plan.name,
-          notes: plan.notes,
-          exercises: plan.exercises.map(({ name, sets, reps, weight, rest_seconds, notes }) => ({
-            name,
-            sets,
-            reps,
-            rest_seconds,
-            notes,
-            weight: maxByExercise[name] > 0 ? maxByExercise[name] : weight,
-          })),
-        });
+        await api.put(`/plans/${plan.id}`, planWithTodaysWeights(plan, draft));
       }
 
       clearDraft(planId);
@@ -258,7 +246,7 @@ export default function Workout() {
               <div className="mb-3">
                 <h2 className="title-rune font-bold">{ex.name}</h2>
                 <p className="text-xs text-muted-foreground">
-                  Meta {ex.sets.length} × {ex.targetReps}
+                  Meta {ex.target ?? `${ex.sets.length} × ${ex.targetReps}`}
                   {ex.rest > 0 && ` · descanso ${ex.rest}s`}
                   {records[ex.name] > 0 && ` · recorde ${formatKg(records[ex.name])}`}
                   {ex.notes && ` · ${ex.notes}`}
@@ -373,4 +361,26 @@ function maxWeights(sets) {
   const result = {};
   for (const s of sets) result[s.exercise_name] = Math.max(result[s.exercise_name] ?? 0, s.weight);
   return result;
+}
+
+/** A ficha com a carga de cada série trocada pela usada hoje (só nas séries feitas).
+ *  Série por série: numa pirâmide, a 1ª continua leve e a última pesada. */
+export function planWithTodaysWeights(plan, draft) {
+  return {
+    name: plan.name,
+    notes: plan.notes,
+    exercises: plan.exercises.map((ex, i) => {
+      // o rascunho segue a ordem da ficha; conferimos o nome por segurança
+      const today = draft.exercises[i]?.name === ex.name ? draft.exercises[i].sets : [];
+      return {
+        name: ex.name,
+        rest_seconds: ex.rest_seconds,
+        notes: ex.notes,
+        sets: ex.sets.map((s, j) => {
+          const done = today[j]?.done ? parseNumber(today[j].weight) : null;
+          return { reps: s.reps, weight: done > 0 ? done : s.weight };
+        }),
+      };
+    }),
+  };
 }

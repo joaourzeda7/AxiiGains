@@ -89,18 +89,29 @@ class Token(BaseModel):
 
 # ---------- Fichas ----------
 
+class PlanSetIn(BaseModel):
+    reps: str = Field(default="10", min_length=1, max_length=20)  # texto: aceita "8-12"
+    weight: float | None = Field(default=None, ge=0, le=1000)
+
+
+class PlanSetOut(ORM, PlanSetIn):
+    pass
+
+
 class ExerciseIn(BaseModel):
     name: str = Field(min_length=1, max_length=80)
-    sets: int = Field(default=3, ge=1, le=20)
-    reps: str = Field(default="10", min_length=1, max_length=20)
-    weight: float | None = Field(default=None, ge=0, le=1000)
+    sets: list[PlanSetIn] = Field(min_length=1, max_length=20)
     rest_seconds: int | None = Field(default=None, ge=0, le=900)
     notes: str | None = Field(default=None, max_length=200)
 
 
-class ExerciseOut(ORM, ExerciseIn):
+class ExerciseOut(ORM):
     id: int
     position: int
+    name: str
+    sets: list[PlanSetOut]
+    rest_seconds: int | None
+    notes: str | None
 
 
 class PlanIn(BaseModel):

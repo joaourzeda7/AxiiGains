@@ -3,7 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import PlanExercise, User, WorkoutPlan
+from app.models import PlanExercise, PlanSet, User, WorkoutPlan
 from app.schemas import PlanIn, PlanOut
 from app.security import get_current_user
 
@@ -23,7 +23,16 @@ def get_own_plan(plan_id: int, user: User, db: Session) -> WorkoutPlan:
 
 
 def _build_exercises(data: PlanIn) -> list[PlanExercise]:
-    return [PlanExercise(position=i, **ex.model_dump()) for i, ex in enumerate(data.exercises)]
+    return [
+        PlanExercise(
+            position=i,
+            name=ex.name,
+            rest_seconds=ex.rest_seconds,
+            notes=ex.notes,
+            sets=[PlanSet(position=j, reps=s.reps, weight=s.weight) for j, s in enumerate(ex.sets)],
+        )
+        for i, ex in enumerate(data.exercises)
+    ]
 
 
 @router.get("", response_model=list[PlanOut])
