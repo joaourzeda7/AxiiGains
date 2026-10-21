@@ -188,18 +188,18 @@ export default function AICoach() {
       <form onSubmit={handleGenerate} className="flex flex-col gap-5">
         <div className="grid gap-2">
           <Label>Objetivo</Label>
-          <ChoiceChips options={toOptions(GOALS)} value={form.goal} onChange={(goal) => setForm({ ...form, goal })} />
+          <ChoiceChips options={toOptions(GOALS)} value={form.goal} onChange={(goal) => setForm((f) => ({ ...f, goal }))} />
         </div>
         <div className="grid gap-2">
           <Label>Nível</Label>
-          <ChoiceChips options={toOptions(LEVELS)} value={form.level} onChange={(level) => setForm({ ...form, level })} />
+          <ChoiceChips options={toOptions(LEVELS)} value={form.level} onChange={(level) => setForm((f) => ({ ...f, level }))} />
         </div>
         <div className="grid gap-2">
           <Label>Dias de treino por semana</Label>
           <ChoiceChips
             options={[1, 2, 3, 4, 5, 6, 7].map((n) => ({ value: n, label: n }))}
             value={form.days_per_week}
-            onChange={(days_per_week) => setForm({ ...form, days_per_week })}
+            onChange={(days_per_week) => setForm((f) => ({ ...f, days_per_week }))}
           />
         </div>
         <div className="grid gap-2">
@@ -207,7 +207,7 @@ export default function AICoach() {
           <ChoiceChips
             options={[30, 45, 60, 75, 90].map((n) => ({ value: n, label: `${n} min` }))}
             value={form.session_minutes}
-            onChange={(session_minutes) => setForm({ ...form, session_minutes })}
+            onChange={(session_minutes) => setForm((f) => ({ ...f, session_minutes }))}
           />
         </div>
         <div className="grid gap-2">
@@ -215,7 +215,7 @@ export default function AICoach() {
           <Input
             id="equipment"
             value={form.equipment}
-            onChange={(e) => setForm({ ...form, equipment: e.target.value })}
+            onChange={(e) => setForm((f) => ({ ...f, equipment: e.target.value }))}
             maxLength={200}
             className="h-12"
           />
@@ -226,7 +226,7 @@ export default function AICoach() {
             id="notes"
             placeholder="Ex.: dor no joelho, quero focar em glúteos, não gosto de esteira…"
             value={form.notes}
-            onChange={(e) => setForm({ ...form, notes: e.target.value })}
+            onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
             maxLength={500}
             rows={3}
           />

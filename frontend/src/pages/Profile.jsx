@@ -58,22 +58,22 @@ export default function Profile() {
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <div className="grid gap-2">
           <Label htmlFor="name">Nome</Label>
-          <Input id="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="h-12" />
+          <Input id="name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required className="h-12" />
         </div>
         <div className="grid gap-2">
           <Label>Objetivo</Label>
-          <ChoiceChips options={toOptions(GOALS)} value={form.goal} onChange={(goal) => setForm({ ...form, goal })} />
+          <ChoiceChips options={toOptions(GOALS)} value={form.goal} onChange={(goal) => setForm((f) => ({ ...f, goal }))} />
         </div>
         <div className="grid gap-2">
           <Label>Nível</Label>
-          <ChoiceChips options={toOptions(LEVELS)} value={form.level} onChange={(level) => setForm({ ...form, level })} />
+          <ChoiceChips options={toOptions(LEVELS)} value={form.level} onChange={(level) => setForm((f) => ({ ...f, level }))} />
         </div>
         <div className="grid gap-2">
           <Label>Dias de treino por semana</Label>
           <ChoiceChips
             options={[1, 2, 3, 4, 5, 6, 7].map((n) => ({ value: n, label: n }))}
             value={form.days_per_week}
-            onChange={(days_per_week) => setForm({ ...form, days_per_week })}
+            onChange={(days_per_week) => setForm((f) => ({ ...f, days_per_week }))}
           />
         </div>
         <div className="grid gap-2">
@@ -82,7 +82,7 @@ export default function Profile() {
             id="equipment"
             placeholder="Ex.: academia completa, só halteres…"
             value={form.equipment}
-            onChange={(e) => setForm({ ...form, equipment: e.target.value })}
+            onChange={(e) => setForm((f) => ({ ...f, equipment: e.target.value }))}
             maxLength={200}
             className="h-12"
           />

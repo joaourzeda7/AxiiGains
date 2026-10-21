@@ -24,7 +24,7 @@ export default function AuthPage({ mode }) {
       .catch(() => {});
   }, [isRegister]);
 
-  const set = (field) => (e) => setForm({ ...form, [field]: e.target.value });
+  const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
 
   async function handleSubmit(e) {
     e.preventDefault();
