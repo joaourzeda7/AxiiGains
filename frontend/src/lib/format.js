@@ -61,7 +61,9 @@ export function sessionVolume(session) {
 
 /** Duração estimada de uma ficha: ~40s por série + o descanso. Arredonda para 5 min. */
 export function estimateMinutes(plan) {
-  const seconds = plan.exercises.reduce((total, ex) => total + ex.sets.length * (40 + (ex.rest_seconds ?? 60)), 0);
+  // num bi-set, quem emenda no próximo não tem descanso
+  const rest = (ex) => (ex.linked_to_next ? 0 : (ex.rest_seconds ?? 60));
+  const seconds = plan.exercises.reduce((total, ex) => total + ex.sets.length * (40 + rest(ex)), 0);
   return Math.max(5, Math.round(seconds / 60 / 5) * 5);
 }
 

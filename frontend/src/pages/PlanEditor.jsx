@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowDown, ArrowUp, Loader2, Plus, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Link2, Loader2, Plus, Trash2, Unlink2, X } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +21,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { PageHeader, SubmitButton } from "@/components/common";
 import api, { errorMessage } from "@/lib/api";
 import { parseNumber } from "@/lib/format";
+import { groupLabelsByIndex } from "@/lib/supersets";
+import { cn } from "@/lib/utils";
 
 const MAX_SETS = 20;
 
@@ -37,6 +39,7 @@ const newExercise = (data = {}) => ({
   name: data.name ?? "",
   rest_seconds: data.rest_seconds != null ? String(data.rest_seconds) : "60",
   notes: data.notes ?? "",
+  linked_to_next: data.linked_to_next ?? false,
   sets: data.sets?.length ? data.sets.map(newSet) : [newSet(), newSet(), newSet()],
 });
 
@@ -80,6 +83,8 @@ export default function PlanEditor() {
   async function handleSave(e) {
     e.preventDefault();
     const filled = exercises.filter((ex) => ex.name.trim());
+    // o último exercício não emenda em nada (o backend também garante isso)
+    if (filled.length) filled[filled.length - 1] = { ...filled.at(-1), linked_to_next: false };
     const payload = {
       name: name.trim(),
       notes: notes.trim() || null,
@@ -87,6 +92,7 @@ export default function PlanEditor() {
         name: ex.name.trim(),
         rest_seconds: ex.rest_seconds === "" ? null : Number(ex.rest_seconds),
         notes: ex.notes.trim() || null,
+        linked_to_next: ex.linked_to_next,
         sets: ex.sets.map((s) => ({ reps: s.reps.trim() || "10", weight: parseNumber(s.weight) })),
       })),
     };
@@ -112,6 +118,8 @@ export default function PlanEditor() {
       toast.error(errorMessage(err));
     }
   }
+
+  const groupLabels = groupLabelsByIndex(exercises);
 
   if (loading) {
     return (
@@ -146,19 +154,28 @@ export default function PlanEditor() {
         <h2 className="title-rune mt-2 text-lg font-bold">Exercícios</h2>
 
         {exercises.map((ex, i) => (
-          <ExerciseCard
-            key={ex.key}
-            index={i}
-            exercise={ex}
-            isFirst={i === 0}
-            isLast={i === exercises.length - 1}
-            onChange={(change) => updateExercise(ex.key, change)}
-            onMove={(delta) => move(i, delta)}
-            onRemove={() => setExercises((list) => list.filter((x) => x.key !== ex.key))}
-          />
+          <div key={ex.key} className="flex flex-col">
+            <ExerciseCard
+              index={i}
+              exercise={ex}
+              groupLabel={groupLabels[i]}
+              isFirst={i === 0}
+              isLast={i === exercises.length - 1}
+              onChange={(change) => updateExercise(ex.key, change)}
+              onMove={(delta) => move(i, delta)}
+              onRemove={() => setExercises((list) => list.filter((x) => x.key !== ex.key))}
+            />
+            {i < exercises.length - 1 && (
+              <LinkToggle
+                linked={ex.linked_to_next}
+                label={groupLabels[i]}
+                onToggle={() => updateExercise(ex.key, (e) => ({ linked_to_next: !e.linked_to_next }))}
+              />
+            )}
+          </div>
         ))}
 
-        <Button type="button" variant="outline" className="h-12 border-dashed" onClick={() => setExercises([...exercises, newExercise()])}>
+        <Button type="button" variant="outline" className="h-12 border-dashed" onClick={() => setExercises((list) => [...list, newExercise()])}>
           <Plus /> Adicionar exercício
         </Button>
 
@@ -194,7 +211,7 @@ export default function PlanEditor() {
   );
 }
 
-function ExerciseCard({ index, exercise: ex, isFirst, isLast, onChange, onMove, onRemove }) {
+function ExerciseCard({ index, exercise: ex, groupLabel, isFirst, isLast, onChange, onMove, onRemove }) {
   const setField = (field, value) => onChange(() => ({ [field]: value }));
   const updateSet = (key, field, value) =>
     onChange((e) => ({ sets: e.sets.map((s) => (s.key === key ? { ...s, [field]: value } : s)) }));
@@ -204,8 +221,13 @@ function ExerciseCard({ index, exercise: ex, isFirst, isLast, onChange, onMove, 
   const removeSet = (key) => onChange((e) => ({ sets: e.sets.filter((s) => s.key !== key) }));
 
   return (
-    <Card className="gap-3 py-4">
+    <Card className={cn("gap-3 py-4", groupLabel && "border-primary/45")}>
       <CardContent className="flex flex-col gap-3 px-4">
+        {groupLabel && (
+          <span className="-mb-1 self-start rounded-full bg-primary/20 px-2.5 py-0.5 text-[10px] font-bold tracking-wider text-brand-soft uppercase">
+            {groupLabel}
+          </span>
+        )}
         <div className="flex items-center gap-2">
           <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-brand-soft">
             {index + 1}
@@ -248,14 +270,22 @@ function ExerciseCard({ index, exercise: ex, isFirst, isLast, onChange, onMove, 
         </Button>
 
         <div className="grid grid-cols-[6rem_1fr] gap-2">
-          <label className="grid gap-1">
-            <span className="text-[11px] text-muted-foreground">Descanso (s)</span>
-            <Input
-              inputMode="numeric"
-              value={ex.rest_seconds}
-              onChange={(e) => setField("rest_seconds", e.target.value.replace(/\D/g, ""))}
-            />
-          </label>
+          {ex.linked_to_next ? (
+            // emenda no próximo: o descanso que vale é o do último exercício do bloco
+            <div className="grid gap-1">
+              <span className="text-[11px] text-muted-foreground">Descanso</span>
+              <span className="flex h-9 items-center text-sm text-brand-soft">nenhum</span>
+            </div>
+          ) : (
+            <label className="grid gap-1">
+              <span className="text-[11px] text-muted-foreground">Descanso (s)</span>
+              <Input
+                inputMode="numeric"
+                value={ex.rest_seconds}
+                onChange={(e) => setField("rest_seconds", e.target.value.replace(/\D/g, ""))}
+              />
+            </label>
+          )}
           <label className="grid gap-1">
             <span className="text-[11px] text-muted-foreground">Observação</span>
             <Input
@@ -317,5 +347,27 @@ function SetRow({ number, set, canRemove, onChange, onRemove }) {
         <X />
       </Button>
     </>
+  );
+}
+
+/** Botão entre dois exercícios: liga/desliga o bi-set (emendar no próximo sem descanso). */
+function LinkToggle({ linked, label, onToggle }) {
+  return (
+    <div className="relative flex h-12 items-center justify-center">
+      {/* linha que "costura" os dois cards quando estão ligados */}
+      <span className={cn("absolute inset-y-0 left-1/2 w-0.5 -translate-x-1/2", linked ? "bg-primary/60" : "bg-transparent")} />
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-pressed={linked}
+        className={cn(
+          "relative flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+          linked ? "border-primary bg-[#1d1440] text-brand-soft" : "border-dashed border-border bg-background text-muted-foreground",
+        )}
+      >
+        {linked ? <Link2 className="size-3.5" /> : <Unlink2 className="size-3.5" />}
+        {linked ? `${label} · sem descanso entre eles` : "Juntar com o próximo (bi-set)"}
+      </button>
+    </div>
   );
 }

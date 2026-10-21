@@ -103,6 +103,7 @@ class ExerciseIn(BaseModel):
     sets: list[PlanSetIn] = Field(min_length=1, max_length=20)
     rest_seconds: int | None = Field(default=None, ge=0, le=900)
     notes: str | None = Field(default=None, max_length=200)
+    linked_to_next: bool = False  # bi-set / tri-set com o exercício seguinte
 
 
 class ExerciseOut(ORM):
@@ -112,6 +113,7 @@ class ExerciseOut(ORM):
     sets: list[PlanSetOut]
     rest_seconds: int | None
     notes: str | None
+    linked_to_next: bool
 
 
 class PlanIn(BaseModel):

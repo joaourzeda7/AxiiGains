@@ -6,7 +6,7 @@ Usuário ─┬─ Fichas (WorkoutPlan) ── Exercícios (PlanExercise) ──
 """
 from datetime import date, datetime, timezone
 
-from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Text, false
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app import config
@@ -72,6 +72,9 @@ class PlanExercise(Base):
     name: Mapped[str] = mapped_column(String(80))
     rest_seconds: Mapped[int | None] = mapped_column(Integer)
     notes: Mapped[str | None] = mapped_column(String(200))
+    # True = emenda no próximo exercício sem descanso. A → B forma um bi-set;
+    # A → B → C, um tri-set. Funciona mesmo depois de reordenar a ficha.
+    linked_to_next: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
 
     plan: Mapped[WorkoutPlan] = relationship(back_populates="exercises")
     # Cada série tem as próprias reps e carga: dá para montar pirâmide, drop-set etc.

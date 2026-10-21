@@ -126,6 +126,32 @@ def test_sets_migration_can_be_undone(tmp_path):
     assert "plan_sets" not in inspect(engine).get_table_names()
 
 
+SETS_REVISION = "5388ecdbc120"
+
+
+def test_superset_column_keeps_every_planned_set(tmp_path):
+    """A coluna do bi-set não pode recriar plan_exercises (o cascade apagaria as séries)."""
+    engine = _engine(tmp_path)
+    _migrate_to(engine, INITIAL_REVISION)
+    _seed_old_plans(engine)
+    _migrate_to(engine, SETS_REVISION)
+    with engine.connect() as conn:
+        before = conn.execute(text("SELECT count(*) FROM plan_sets")).scalar()
+
+    run_migrations(engine)  # aplica a do bi-set
+
+    with engine.connect() as conn:
+        assert conn.execute(text("SELECT count(*) FROM plan_sets")).scalar() == before == 5
+        links = conn.execute(text("SELECT linked_to_next FROM plan_exercises ORDER BY id")).scalars().all()
+    assert links == [0, 0]  # fichas existentes ficam sem bi-set
+
+    with engine.begin() as conn:
+        command.downgrade(_alembic_config(conn), SETS_REVISION)
+    with engine.connect() as conn:
+        assert conn.execute(text("SELECT count(*) FROM plan_sets")).scalar() == 5
+    assert "linked_to_next" not in {c["name"] for c in inspect(engine).get_columns("plan_exercises")}
+
+
 def test_downgrade_removes_everything(tmp_path):
     engine = _engine(tmp_path)
     run_migrations(engine)

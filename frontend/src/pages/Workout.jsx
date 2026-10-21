@@ -9,6 +9,7 @@ import CastAnimation from "@/components/CastAnimation";
 import { ProgressRing, SubmitButton } from "@/components/common";
 import api, { errorMessage } from "@/lib/api";
 import { describeSets, firstNumber, formatKg, parseNumber, todayISO } from "@/lib/format";
+import { groupExercises, groupLabel } from "@/lib/supersets";
 import { cn } from "@/lib/utils";
 
 const draftKey = (planId) => `axii_workout_${planId}`;
@@ -48,6 +49,7 @@ function buildDraft(plan) {
       target: describeSets(ex.sets),
       rest: ex.rest_seconds ?? 60,
       notes: ex.notes,
+      linked_to_next: ex.linked_to_next, // bi-set: emenda no próximo sem descanso
       // Cada série já vem preenchida com a meta dela (pirâmide: 12×40, 10×45, 8×50...)
       sets: ex.sets.map((s) => ({
         reps: String(firstNumber(s.reps) ?? ""),
@@ -138,8 +140,15 @@ export default function Workout() {
       return;
     }
     updateSet(exIndex, setIndex, { done: !set.done });
-    const rest = draft.exercises[exIndex].rest;
-    if (!set.done && rest > 0) setRestUntil(Date.now() + rest * 1000);
+    if (set.done) return; // só desmarcou
+    const ex = draft.exercises[exIndex];
+    if (ex.linked_to_next) {
+      // Bi-set: sem descanso, vai direto para o próximo exercício do bloco
+      toast(`Agora: ${draft.exercises[exIndex + 1]?.name}`, { duration: 2500 });
+      setRestUntil(null);
+    } else if (ex.rest > 0) {
+      setRestUntil(Date.now() + ex.rest * 1000);
+    }
   }
 
   function addSet(exIndex) {
@@ -240,41 +249,61 @@ export default function Workout() {
       </header>
 
       <div className="flex flex-col gap-3 px-4 pt-4">
-        {draft.exercises.map((ex, exIndex) => (
-          <Card key={exIndex} className="gap-3 py-4">
-            <CardContent className="px-4">
-              <div className="mb-3">
-                <h2 className="title-rune font-bold">{ex.name}</h2>
-                <p className="text-xs text-muted-foreground">
-                  Meta {ex.target ?? `${ex.sets.length} × ${ex.targetReps}`}
-                  {ex.rest > 0 && ` · descanso ${ex.rest}s`}
-                  {records[ex.name] > 0 && ` · recorde ${formatKg(records[ex.name])}`}
-                  {ex.notes && ` · ${ex.notes}`}
-                </p>
-              </div>
+        {groupExercises(draft.exercises).map((group) => {
+          const label = groupLabel(group.length);
+          return (
+            <Card key={group[0].index} className={cn("gap-3 py-4", label && "border-primary/45")}>
+              <CardContent className="flex flex-col gap-4 px-4">
+                {label && (
+                  <div className="-mb-1 flex items-center gap-2">
+                    <span className="rounded-full bg-primary/20 px-2.5 py-0.5 text-[11px] font-bold tracking-wider text-brand-soft uppercase">
+                      {label}
+                    </span>
+                    <span className="text-xs text-muted-foreground">em sequência, descanso só no fim</span>
+                  </div>
+                )}
+                {group.map(({ exercise: ex, index: exIndex }, i) => (
+                  <div key={exIndex} className={cn(i > 0 && "border-t border-border pt-4")}>
+                    <div className="mb-3">
+                      <h2 className="title-rune font-bold">
+                        {label && <span className="mr-1.5 text-brand-soft">{String.fromCharCode(65 + i)}.</span>}
+                        {ex.name}
+                      </h2>
+                      <p className="text-xs text-muted-foreground">
+                        Meta {ex.target ?? `${ex.sets.length} × ${ex.targetReps}`}
+                        {ex.linked_to_next
+                          ? ` · sem descanso → ${draft.exercises[exIndex + 1]?.name}`
+                          : ex.rest > 0 && ` · descanso ${ex.rest}s`}
+                        {records[ex.name] > 0 && ` · recorde ${formatKg(records[ex.name])}`}
+                        {ex.notes && ` · ${ex.notes}`}
+                      </p>
+                    </div>
 
-              <div className="grid grid-cols-[2rem_1fr_1fr_3rem] items-center gap-2 text-[10px] tracking-wider text-muted-foreground uppercase">
-                <span className="text-center">Série</span>
-                <span className="text-center">Kg</span>
-                <span className="text-center">Reps</span>
-                <span />
-                {ex.sets.map((s, setIndex) => (
-                  <SetRow
-                    key={setIndex}
-                    index={setIndex}
-                    set={s}
-                    onChange={(changes) => updateSet(exIndex, setIndex, changes)}
-                    onToggle={() => toggleDone(exIndex, setIndex)}
-                  />
+                    <div className="grid grid-cols-[2rem_1fr_1fr_3rem] items-center gap-2 text-[10px] tracking-wider text-muted-foreground uppercase">
+                      <span className="text-center">Série</span>
+                      <span className="text-center">Kg</span>
+                      <span className="text-center">Reps</span>
+                      <span />
+                      {ex.sets.map((s, setIndex) => (
+                        <SetRow
+                          key={setIndex}
+                          index={setIndex}
+                          set={s}
+                          onChange={(changes) => updateSet(exIndex, setIndex, changes)}
+                          onToggle={() => toggleDone(exIndex, setIndex)}
+                        />
+                      ))}
+                    </div>
+
+                    <Button variant="ghost" size="sm" className="mt-2 w-full text-brand-soft" onClick={() => addSet(exIndex)}>
+                      <Plus /> Série extra
+                    </Button>
+                  </div>
                 ))}
-              </div>
-
-              <Button variant="ghost" size="sm" className="mt-2 w-full text-brand-soft" onClick={() => addSet(exIndex)}>
-                <Plus /> Série extra
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          );
+        })}
 
         <label className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-sm">
           <input
@@ -376,6 +405,7 @@ export function planWithTodaysWeights(plan, draft) {
         name: ex.name,
         rest_seconds: ex.rest_seconds,
         notes: ex.notes,
+        linked_to_next: ex.linked_to_next, // sem isso, finalizar o treino desfaria os bi-sets
         sets: ex.sets.map((s, j) => {
           const done = today[j]?.done ? parseNumber(today[j].weight) : null;
           return { reps: s.reps, weight: done > 0 ? done : s.weight };

@@ -114,3 +114,30 @@ def test_update_replaces_sets_too(client, auth, make_plan):
         json={"name": plan["name"], "exercises": [{"name": "Supino", "sets": series(("8", 50))}]},
     )
     assert r.json()["exercises"][0]["sets"] == series(("8", 50))
+
+
+def test_superset_links_are_saved(client, auth, make_plan):
+    """Bi-set: Supino emenda no Crucifixo; Tríceps é sozinho."""
+    plan = make_plan(auth, exercises=[
+        {"name": "Supino", "sets": ONE, "linked_to_next": True},
+        {"name": "Crucifixo", "sets": ONE},
+        {"name": "Tríceps", "sets": ONE},
+    ])
+    assert [e["linked_to_next"] for e in plan["exercises"]] == [True, False, False]
+
+
+def test_tri_set_is_a_chain_of_links(client, auth, make_plan):
+    plan = make_plan(auth, exercises=[{"name": n, "sets": ONE, "linked_to_next": True} for n in "ABC"] + [
+        {"name": "D", "sets": ONE},
+    ])
+    assert [e["linked_to_next"] for e in plan["exercises"]] == [True, True, True, False]
+
+
+def test_last_exercise_cannot_link_to_nothing(client, auth, make_plan):
+    plan = make_plan(auth, exercises=[{"name": "Supino", "sets": ONE, "linked_to_next": True}])
+    assert plan["exercises"][0]["linked_to_next"] is False
+
+
+def test_link_defaults_to_false(client, auth, make_plan):
+    plan = make_plan(auth, exercises=[{"name": "A", "sets": ONE}, {"name": "B", "sets": ONE}])
+    assert [e["linked_to_next"] for e in plan["exercises"]] == [False, False]

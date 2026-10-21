@@ -75,3 +75,11 @@ describe("planWithTodaysWeights", () => {
     expect(planWithTodaysWeights(plan, stale).exercises[0].sets.map((s) => s.weight)).toEqual([40, 45, 50]);
   });
 });
+
+describe("planWithTodaysWeights e bi-set", () => {
+  it("finalizar o treino não desfaz o bi-set da ficha", () => {
+    const linked = { ...plan, exercises: [{ ...plan.exercises[0], linked_to_next: true }, plan.exercises[1]] };
+    const result = planWithTodaysWeights(linked, draft([{ reps: "12", weight: "40", done: true }]));
+    expect(result.exercises.map((e) => e.linked_to_next)).toEqual([true, undefined]);
+  });
+});

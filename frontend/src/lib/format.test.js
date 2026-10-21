@@ -132,6 +132,15 @@ describe("estimateMinutes", () => {
     expect(estimateMinutes(plan)).toBe(15);
   });
 
+  it("no bi-set, quem emenda no próximo não conta descanso", () => {
+    const sets = (n) => Array.from({ length: n }, () => ({ reps: "10" }));
+    const solo = { exercises: [{ sets: sets(4), rest_seconds: 120 }, { sets: sets(4), rest_seconds: 120 }] };
+    const biSet = { exercises: [{ ...solo.exercises[0], linked_to_next: true }, solo.exercises[1]] };
+    // 8 séries × (40 + 120) = 1280s ≈ 21 min → 20;  com bi-set: 4 × 40 + 4 × 160 = 800s ≈ 13 → 15
+    expect(estimateMinutes(solo)).toBe(20);
+    expect(estimateMinutes(biSet)).toBe(15);
+  });
+
   it("usa 60s de descanso quando não informado e nunca devolve menos de 5", () => {
     expect(estimateMinutes({ exercises: [{ sets: [{ reps: "10" }], rest_seconds: null }] })).toBe(5);
   });

@@ -23,12 +23,15 @@ def get_own_plan(plan_id: int, user: User, db: Session) -> WorkoutPlan:
 
 
 def _build_exercises(data: PlanIn) -> list[PlanExercise]:
+    last = len(data.exercises) - 1
     return [
         PlanExercise(
             position=i,
             name=ex.name,
             rest_seconds=ex.rest_seconds,
             notes=ex.notes,
+            # o último exercício não tem "próximo" para emendar
+            linked_to_next=ex.linked_to_next and i < last,
             sets=[PlanSet(position=j, reps=s.reps, weight=s.weight) for j, s in enumerate(ex.sets)],
         )
         for i, ex in enumerate(data.exercises)
